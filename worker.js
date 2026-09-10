@@ -49,8 +49,9 @@ async function api(url,opt={}){
   }catch(e){
     if(e && e.name==='AbortError') throw Error('انتهت مهلة الاتصال بالخادم');
     throw e;
+  } finally {
+    clearTimeout(timer);
   }
-  clearTimeout(timer);
 }
 function showTab(t){$('productsTab').classList.toggle('hide',t!=='products');$('storeTab').classList.toggle('hide',t!=='store')}
 function previewImage(){const f=$('image').files?.[0];if(!f)return;$('preview').src=URL.createObjectURL(f);$('preview').style.display='block'}
@@ -84,8 +85,9 @@ function renderProducts(list){
  productsCache=list||[];
  const box=$('list');
  if(!productsCache.length){box.innerHTML='<div class="small">لا توجد منتجات بعد.</div>';return}
- box.innerHTML=productsCache.map((p,i)=>'<div class="item"><img src="'+esc(p.image_url||'')+'" onerror="this.style.visibility='hidden'"><div style="flex:1"><b>'+esc(p.name)+'</b><div class="small">بيع: '+(Number(p.price)||0)+' ج • جملة: '+(Number(p.wholesale_price)||0)+' ج • مخزون: '+(Number(p.stock)||0)+'</div><div>'+(p.hot_offer?'<span class="badge">🔥 عرض ساخن</span>':'')+(p.discount?'<span class="badge">🏷️ تخفيض</span>':'')+(p.featured?'<span class="badge">⭐ مميز</span>':'')+(p.new_product?'<span class="badge">🆕 جديد</span>':'')+'</div><div class="actions"><button class="muted" onclick="edit(productsCache['+i+'])" type="button">تعديل</button><button class="muted" onclick="copyProductLink('+p.id+')" type="button">🔗 نسخ الرابط</button><button class="danger" onclick="removeP('+p.id+')" type="button">إخفاء</button></div></div></div>').join('');
+ box.innerHTML=productsCache.map((p,i)=>'<div class="item"><img src="'+esc(p.image_url||'')+'"><div style="flex:1"><b>'+esc(p.name)+'</b><div class="small">بيع: '+(Number(p.price)||0)+' ج • جملة: '+(Number(p.wholesale_price)||0)+' ج • مخزون: '+(Number(p.stock)||0)+'</div><div>'+(p.hot_offer?'<span class="badge">🔥 عرض ساخن</span>':'')+(p.discount?'<span class="badge">🏷️ تخفيض</span>':'')+(p.featured?'<span class="badge">⭐ مميز</span>':'')+(p.new_product?'<span class="badge">🆕 جديد</span>':'')+'</div><div class="actions"><button class="muted" data-action="edit" data-index="'+i+'" type="button">تعديل</button><button class="muted" data-action="copy" data-id="'+p.id+'" type="button">🔗 نسخ الرابط</button><button class="danger" data-action="hide" data-id="'+p.id+'" type="button">إخفاء</button></div></div></div>').join('');
 }
+document.addEventListener('click',e=>{const b=e.target.closest('#list button[data-action]');if(!b)return;const a=b.dataset.action;if(a==='edit'){const p=productsCache[Number(b.dataset.index)];if(p)edit(p)}else if(a==='copy'){copyProductLink(Number(b.dataset.id))}else if(a==='hide'){removeP(Number(b.dataset.id))}});
 async function load(){
  const box=$('list');box.innerHTML='<div class="small">جاري تحميل المنتجات…</div>';
  try{const d=await api('/api/products');if(!d||!Array.isArray(d.products))throw Error('بيانات المنتجات غير صحيحة');renderProducts(d.products);msg('تم تحميل '+d.products.length+' منتج ✅')}
