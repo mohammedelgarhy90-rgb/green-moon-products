@@ -4,7 +4,7 @@ const cors = {
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS"
 };
 const json = (data, status=200) => new Response(JSON.stringify(data), {status, headers:{"content-type":"application/json; charset=utf-8", ...cors}});
-function ok(request, env) { const key=request.headers.get("x-admin-key"); return !!env.ADMIN_KEY && !!key && key===env.ADMIN_KEY; }
+function ok(request, env) { const key=String(request.headers.get("x-admin-key")||'').trim(); const secret=String(env.ADMIN_KEY||'').trim(); return !!secret && !!key && key===secret; }
 async function init(env){
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,description TEXT NOT NULL DEFAULT '',image_url TEXT NOT NULL DEFAULT '',price INTEGER NOT NULL DEFAULT 0,old_price INTEGER NOT NULL DEFAULT 0,wholesale_price INTEGER NOT NULL DEFAULT 0,category TEXT NOT NULL DEFAULT 'الزرع والنباتات',hot_offer INTEGER NOT NULL DEFAULT 0,discount INTEGER NOT NULL DEFAULT 0,featured INTEGER NOT NULL DEFAULT 0,new_product INTEGER NOT NULL DEFAULT 0,sort_order INTEGER NOT NULL DEFAULT 0,stock INTEGER NOT NULL DEFAULT 0,max_qty INTEGER NOT NULL DEFAULT 99,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`).run();
  const cols=[['wholesale_price','INTEGER NOT NULL DEFAULT 0'],['category',"TEXT NOT NULL DEFAULT 'الزرع والنباتات'"],['hot_offer','INTEGER NOT NULL DEFAULT 0'],['discount','INTEGER NOT NULL DEFAULT 0'],['featured','INTEGER NOT NULL DEFAULT 0'],['new_product','INTEGER NOT NULL DEFAULT 0'],['sort_order','INTEGER NOT NULL DEFAULT 0']];
@@ -23,7 +23,7 @@ const ADMIN_HTML = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset
 </section></main><script>
 let token='',currentImage='',settings={},selectedStyle='luxury-emerald';const $=id=>document.getElementById(id);function msg(t){$('status').textContent=t;$('status').style.display='block';setTimeout(()=>$('status').style.display='none',3000)}
 async function api(url,opt={}){opt.headers={...(opt.headers||{}),'x-admin-key':token};const r=await fetch(url,opt);const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'حدث خطأ');return d}
-async function login(){const k=$('key').value.trim();if(!k){msg('اكتب مفتاح الإدارة أولاً');return}token=k;try{await api('/api/admin/products');$('login').classList.add('hide');$('app').classList.remove('hide');await load();await loadSettings()}catch(e){token='';alert(e.message==='Unauthorized'?'مفتاح الإدارة غير صحيح ❌':e.message)}}
+async function login(){const k=$('key').value.trim();if(!k){msg('اكتب مفتاح الإدارة أولاً');return}token=k;msg('جاري التحقق من مفتاح الإدارة…');try{const d=await api('/api/admin/products');$('login').classList.add('hide');$('app').classList.remove('hide');$('status').style.display='none';await load();await loadSettings()}catch(e){token='';$('status').textContent=e.message==='Unauthorized'?'مفتاح الإدارة غير صحيح ❌':('تعذر تسجيل الدخول: '+e.message);$('status').style.display='block'}}
 function showTab(t){$('productsTab').classList.toggle('hide',t!=='products');$('storeTab').classList.toggle('hide',t!=='store')}
 function previewImage(){const f=$('image').files[0];if(!f)return;$('preview').src=URL.createObjectURL(f);$('preview').style.display='block'}
 async function uploadImage(){const f=$('image').files[0];if(!f)return currentImage;const fd=new FormData();fd.append('image',f);const d=await api('/api/admin/upload',{method:'POST',body:fd});return d.url}
@@ -38,11 +38,12 @@ const styles=[['luxury-emerald','Luxury Emerald',['#073b2a','#c9a227','#f5f0df']
 function renderStyles(){ $('styleGrid').innerHTML=styles.map(s=>'<div class="style '+(selectedStyle===s[0]?'active':'')+'" onclick="selectedStyle=\''+s[0]+'\';renderStyles()"><div class="swatches">'+s[1].map(c=>'<i style="background:'+c+'"></i>').join('')+'</div><b>'+s[1]+'</b></div>').join('') }
 async function loadSettings(){const d=await api('/api/admin/settings');settings=d.settings||{};$('store_name').value=settings.store_name||'Green Moon Plants and Flowers';$('store_desc').value=settings.store_desc||'';$('profile_url').value=settings.profile_url||'';$('cover_url').value=settings.cover_url||'';selectedStyle=settings.style||'luxury-emerald';renderStyles()}
 async function saveSettings(){try{const b={store_name:$('store_name').value.trim(),store_desc:$('store_desc').value,profile_url:$('profile_url').value.trim(),cover_url:$('cover_url').value.trim(),style:selectedStyle};await api('/api/admin/settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(b)});msg('تم حفظ إعدادات المتجر وتفعيل الاستايل ✅')}catch(e){alert(e.message)}}
-</script></body></html>`;
+document.addEventListener('DOMContentLoaded',()=>{const k=$('key');if(k)k.addEventListener('keydown',e=>{if(e.key==='Enter')login()});});</script></body></html>`;
 
 
-export default { async fetch(request,env){ try{ if(request.method==='OPTIONS')return new Response(null,{headers:cors}); await init(env); const u=new URL(request.url);
- if(u.pathname==='/admin' || u.pathname==='/admin/') return new Response(ADMIN_HTML,{headers:{'content-type':'text/html; charset=utf-8'}});
+export default { async fetch(request,env){ try{ if(request.method==='OPTIONS')return new Response(null,{headers:cors}); const u=new URL(request.url);
+ if(u.pathname==='/admin' || u.pathname==='/admin/') return new Response(ADMIN_HTML,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store, no-cache, must-revalidate'}});
+ await init(env);
  if(u.pathname.startsWith('/images/') && request.method==='GET'){ if(!env.IMAGES)return new Response('Image storage not configured',{status:503}); const key=decodeURIComponent(u.pathname.slice(8)); const obj=await env.IMAGES.get(key); if(!obj)return new Response('Not found',{status:404}); const h=new Headers();obj.writeHttpMetadata(h);h.set('cache-control','public,max-age=31536000,immutable');return new Response(obj.body,{headers:h}); }
  if(u.pathname==='/' && request.method==='GET')return json({success:true,service:'Green Moon Product API',admin:'/admin'});
  if(u.pathname==='/api/products'&&request.method==='GET'){const r=await env.DB.prepare('SELECT id,name,description,image_url,price,old_price,wholesale_price,category,hot_offer,discount,featured,new_product,sort_order,stock,max_qty,active FROM products WHERE active=1 ORDER BY sort_order ASC,id DESC').all();return json({success:true,products:r.results||[]});}
