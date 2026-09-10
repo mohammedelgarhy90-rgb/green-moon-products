@@ -35,15 +35,22 @@ const ADMIN_HTML = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset
 const $=id=>document.getElementById(id);
 function msg(t){const el=$('status');if(!el)return;el.textContent=t;el.style.display='block';clearTimeout(window._msgTimer);window._msgTimer=setTimeout(()=>el.style.display='none',3500)}
 async function api(url,opt={}){
-  const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),10000);
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),10000);
+  const headers=new Headers(opt.headers||{});
+  if(opt.body && typeof opt.body==='string' && !headers.has('content-type')) headers.set('content-type','application/json');
   try{
-    const headers=new Headers(opt.headers||{});
-    if(opt.body && typeof opt.body==='string' && !headers.has('content-type')) headers.set('content-type','application/json');
     const r=await fetch(url,{...opt,headers,signal:controller.signal,cache:'no-store'});
-    const text=await r.text(); let d={}; try{d=text?JSON.parse(text):{}}catch(_){throw Error('استجابة غير صالحة من الخادم')}
-    if(!r.ok)throw Error(d.error||('خطأ HTTP '+r.status)); return d;
-  }catch(e){if(e.name==='AbortError')throw Error('انتهت مهلة الاتصال بالخادم');throw e}
-  finally{clearTimeout(timer)}
+    const text=await r.text();
+    let d={};
+    try{d=text?JSON.parse(text):{}}catch(_){throw Error('استجابة غير صالحة من الخادم')}
+    if(!r.ok)throw Error(d.error||('خطأ HTTP '+r.status));
+    return d;
+  }catch(e){
+    if(e && e.name==='AbortError') throw Error('انتهت مهلة الاتصال بالخادم');
+    throw e;
+  }
+  clearTimeout(timer);
 }
 function showTab(t){$('productsTab').classList.toggle('hide',t!=='products');$('storeTab').classList.toggle('hide',t!=='store')}
 function previewImage(){const f=$('image').files?.[0];if(!f)return;$('preview').src=URL.createObjectURL(f);$('preview').style.display='block'}
