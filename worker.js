@@ -56,7 +56,19 @@ function showTab(t){$('productsTab').classList.toggle('hide',t!=='products');$('
 function previewImage(){const f=$('image').files?.[0];if(!f)return;$('preview').src=URL.createObjectURL(f);$('preview').style.display='block'}
 async function uploadImage(){const f=$('image').files?.[0];if(!f)return currentImage;const fd=new FormData();fd.append('image',f);const d=await api('/api/admin/upload',{method:'POST',body:fd});return d.url}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function productUrl(id){return 'https://catalog.greenmoon-eg.workers.dev/product/'+id}
+function productUrl(id){return 'https://catalog.greenmoon-eg.workers.dev/product/'+encodeURIComponent(id)}
+function bindServerButtons(){
+ const box=$('list');if(!box)return;
+ box.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(productsCache[Number(b.dataset.edit)]));
+ box.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copyProductLink(b.dataset.copy));
+ box.querySelectorAll('[data-hide]').forEach(b=>b.onclick=()=>removeP(Number(b.dataset.hide)));
+}
+async function copyProductLink(id){
+ const url=productUrl(id);
+ try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(url);msg('تم نسخ رابط المنتج ✅');return}}catch(e){}
+ try{const ta=document.createElement('textarea');ta.value=url;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();ta.setSelectionRange(0,ta.value.length);const ok=document.execCommand('copy');ta.remove();if(ok){msg('تم نسخ رابط المنتج ✅');return}}catch(e){}
+ window.prompt('انسخ رابط المنتج:',url);
+}
 async function save(){
  try{
   const id=$('id').value; let image_url=$('image_url').value.trim()||currentImage;
@@ -77,7 +89,7 @@ function renderProducts(list){
  if(!productsCache.length){box.innerHTML='<div class="small">لا توجد منتجات بعد.</div>';return}
  box.innerHTML=productsCache.map((p,i)=>'<div class="item"><img src="'+esc(p.image_url||'')+'" onerror="this.style.visibility='hidden'"><div style="flex:1"><b>'+esc(p.name)+'</b><div class="small">بيع: '+(Number(p.price)||0)+' ج • جملة: '+(Number(p.wholesale_price)||0)+' ج • مخزون: '+(Number(p.stock)||0)+'</div><div>'+(p.hot_offer?'<span class="badge">🔥 عرض ساخن</span>':'')+(p.discount?'<span class="badge">🏷️ تخفيض</span>':'')+(p.featured?'<span class="badge">⭐ مميز</span>':'')+(p.new_product?'<span class="badge">🆕 جديد</span>':'')+'</div><div class="actions"><button class="muted" data-edit="'+i+'">تعديل</button><button class="muted" data-copy="'+p.id+'">🔗 نسخ الرابط</button><button class="danger" data-hide="'+p.id+'">إخفاء</button></div></div></div>').join('');
  box.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(productsCache[Number(b.dataset.edit)]));
- box.querySelectorAll('[data-copy]').forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(productUrl(b.dataset.copy));msg('تم نسخ رابط المنتج ✅')}catch(_){msg(productUrl(b.dataset.copy))}});
+ box.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copyProductLink(b.dataset.copy));
  box.querySelectorAll('[data-hide]').forEach(b=>b.onclick=()=>removeP(Number(b.dataset.hide)));
 }
 async function load(){
