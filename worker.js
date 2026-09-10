@@ -27,8 +27,9 @@ async function removeP(id){if(!confirm('إخفاء المنتج؟'))return;try{a
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 </script></body></html>`;
 
-export default { async fetch(request,env){ try{ if(request.method==='OPTIONS')return new Response(null,{headers:cors}); await init(env); const u=new URL(request.url);
- if(u.pathname==='/admin' || u.pathname==='/admin/') return new Response(ADMIN_HTML,{headers:{'content-type':'text/html; charset=utf-8'}});
+export default { async fetch(request,env){ try{ if(request.method==='OPTIONS')return new Response(null,{headers:cors}); const u=new URL(request.url);
+ if(u.pathname==='/admin' || u.pathname==='/admin/') return new Response(ADMIN_HTML,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store'}});
+ await init(env);
  if(u.pathname.startsWith('/images/') && request.method==='GET'){ if(!env.IMAGES)return new Response('Image storage not configured',{status:503}); const key=decodeURIComponent(u.pathname.slice(8)); const obj=await env.IMAGES.get(key); if(!obj)return new Response('Not found',{status:404}); const h=new Headers();obj.writeHttpMetadata(h);h.set('cache-control','public,max-age=31536000,immutable');return new Response(obj.body,{headers:h}); }
  if(u.pathname==='/' && request.method==='GET')return json({success:true,service:'Green Moon Product API',admin:'/admin'});
  if(u.pathname==='/api/products'&&request.method==='GET'){const r=await env.DB.prepare('SELECT id,name,description,image_url,price,old_price,stock,max_qty,active FROM products WHERE active=1 ORDER BY id DESC').all();return json({success:true,products:r.results||[]});}
