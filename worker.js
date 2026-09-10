@@ -59,9 +59,6 @@ function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&l
 function productUrl(id){return 'https://catalog.greenmoon-eg.workers.dev/product/'+encodeURIComponent(id)}
 function bindServerButtons(){
  const box=$('list');if(!box)return;
- box.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(productsCache[Number(b.dataset.edit)]));
- box.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copyProductLink(b.dataset.copy));
- box.querySelectorAll('[data-hide]').forEach(b=>b.onclick=()=>removeP(Number(b.dataset.hide)));
 }
 async function copyProductLink(id){
  const url=productUrl(id);
@@ -87,10 +84,7 @@ function renderProducts(list){
  productsCache=list||[];
  const box=$('list');
  if(!productsCache.length){box.innerHTML='<div class="small">لا توجد منتجات بعد.</div>';return}
- box.innerHTML=productsCache.map((p,i)=>'<div class="item"><img src="'+esc(p.image_url||'')+'" onerror="this.style.visibility='hidden'"><div style="flex:1"><b>'+esc(p.name)+'</b><div class="small">بيع: '+(Number(p.price)||0)+' ج • جملة: '+(Number(p.wholesale_price)||0)+' ج • مخزون: '+(Number(p.stock)||0)+'</div><div>'+(p.hot_offer?'<span class="badge">🔥 عرض ساخن</span>':'')+(p.discount?'<span class="badge">🏷️ تخفيض</span>':'')+(p.featured?'<span class="badge">⭐ مميز</span>':'')+(p.new_product?'<span class="badge">🆕 جديد</span>':'')+'</div><div class="actions"><button class="muted" data-edit="'+i+'">تعديل</button><button class="muted" data-copy="'+p.id+'">🔗 نسخ الرابط</button><button class="danger" data-hide="'+p.id+'">إخفاء</button></div></div></div>').join('');
- box.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>edit(productsCache[Number(b.dataset.edit)]));
- box.querySelectorAll('[data-copy]').forEach(b=>b.onclick=()=>copyProductLink(b.dataset.copy));
- box.querySelectorAll('[data-hide]').forEach(b=>b.onclick=()=>removeP(Number(b.dataset.hide)));
+ box.innerHTML=productsCache.map((p,i)=>'<div class="item"><img src="'+esc(p.image_url||'')+'" onerror="this.style.visibility='hidden'"><div style="flex:1"><b>'+esc(p.name)+'</b><div class="small">بيع: '+(Number(p.price)||0)+' ج • جملة: '+(Number(p.wholesale_price)||0)+' ج • مخزون: '+(Number(p.stock)||0)+'</div><div>'+(p.hot_offer?'<span class="badge">🔥 عرض ساخن</span>':'')+(p.discount?'<span class="badge">🏷️ تخفيض</span>':'')+(p.featured?'<span class="badge">⭐ مميز</span>':'')+(p.new_product?'<span class="badge">🆕 جديد</span>':'')+'</div><div class="actions"><button class="muted" onclick="edit(productsCache['+i+'])" type="button">تعديل</button><button class="muted" onclick="copyProductLink('+p.id+')" type="button">🔗 نسخ الرابط</button><button class="danger" onclick="removeP('+p.id+')" type="button">إخفاء</button></div></div></div>').join('');
 }
 async function load(){
  const box=$('list');box.innerHTML='<div class="small">جاري تحميل المنتجات…</div>';
@@ -112,9 +106,10 @@ export default { async fetch(request,env){ try{ if(request.method==='OPTIONS')re
   const pr=await env.DB.prepare('SELECT id,name,description,image_url,price,old_price,wholesale_price,category,hot_offer,discount,featured,new_product,sort_order,stock,max_qty,active FROM products WHERE active=1 ORDER BY sort_order ASC,id DESC').all();
   const st=await env.DB.prepare('SELECT store_name,store_desc,profile_url,cover_url,style FROM store_settings WHERE id=1').first();
   const escHtml=(v)=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
-  const listHtml=(pr.results||[]).map((p,i)=>'<div class=\"item\"><img src=\"'+escHtml(p.image_url||'')+'\" onerror=\"this.style.visibility=\'hidden\'\"><div style=\"flex:1\"><b>'+escHtml(p.name)+'</b><div class=\"small\">بيع: '+(Number(p.price)||0)+' ج • جملة: '+(Number(p.wholesale_price)||0)+' ج • مخزون: '+(Number(p.stock)||0)+'</div><div>'+(p.hot_offer?'<span class=\"badge\">🔥 عرض ساخن</span>':'')+(p.discount?'<span class=\"badge\">🏷️ تخفيض</span>':'')+(p.featured?'<span class=\"badge\">⭐ مميز</span>':'')+(p.new_product?'<span class=\"badge\">🆕 جديد</span>':'')+'</div><div class=\"actions\"><button class=\"muted\" data-edit=\"'+i+'\">تعديل</button><button class=\"muted\" data-copy=\"'+p.id+'\">🔗 نسخ الرابط</button><button class=\"danger\" data-hide=\"'+p.id+'\">إخفاء</button></div></div></div>').join('') || '<div class=\"small\">لا توجد منتجات بعد.</div>';
+  const listHtml=(pr.results||[]).map((p,i)=>'<div class=\"item\"><img src=\"'+escHtml(p.image_url||'')+'\" onerror=\"this.style.visibility=\'hidden\'\"><div style=\"flex:1\"><b>'+escHtml(p.name)+'</b><div class=\"small\">بيع: '+(Number(p.price)||0)+' ج • جملة: '+(Number(p.wholesale_price)||0)+' ج • مخزون: '+(Number(p.stock)||0)+'</div><div>'+(p.hot_offer?'<span class=\"badge\">🔥 عرض ساخن</span>':'')+(p.discount?'<span class=\"badge\">🏷️ تخفيض</span>':'')+(p.featured?'<span class=\"badge\">⭐ مميز</span>':'')+(p.new_product?'<span class=\"badge\">🆕 جديد</span>':'')+'</div><div class=\"actions\"><button type=\"button\" class=\"muted\" onclick=\"edit(productsCache['+i+'])\">تعديل</button><button type=\"button\" class=\"muted\" onclick=\"copyProductLink('+p.id+')\">🔗 نسخ الرابط</button><button type=\"button\" class=\"danger\" onclick=\"removeP('+p.id+')\">إخفاء</button></div></div></div>').join('') || '<div class=\"small\">لا توجد منتجات بعد.</div>';
   let injected=ADMIN_HTML.replace('<div id=\"list\">جاري التحميل...</div>','<div id=\"list\">'+listHtml+'</div>');
-  injected=injected.replace("window.addEventListener('DOMContentLoaded',()=>{load();loadSettings()});","window.addEventListener('DOMContentLoaded',()=>{loadSettings()});");
+  const productsJson=JSON.stringify(pr.results||[]).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029');
+  injected=injected.replace("window.addEventListener('DOMContentLoaded',()=>{load();loadSettings()});","window.addEventListener('DOMContentLoaded',()=>{productsCache="+productsJson+";loadSettings()});");
   return new Response(injected,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store, no-cache, must-revalidate'}});
 }
  await init(env);
