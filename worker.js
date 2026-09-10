@@ -11,6 +11,18 @@ async function init(env){
  for(const [c,t] of cols){try{await env.DB.prepare(`ALTER TABLE products ADD COLUMN ${c} ${t}`).run()}catch(e){if(!String(e.message||e).toLowerCase().includes('duplicate column'))throw e}}
  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS store_settings (id INTEGER PRIMARY KEY CHECK(id=1),store_name TEXT NOT NULL DEFAULT 'Green Moon Plants and Flowers',store_desc TEXT NOT NULL DEFAULT '',profile_url TEXT NOT NULL DEFAULT '',cover_url TEXT NOT NULL DEFAULT '',style TEXT NOT NULL DEFAULT 'luxury-emerald',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)`).run();
  await env.DB.prepare(`INSERT OR IGNORE INTO store_settings(id) VALUES(1)`).run();
+ const count=await env.DB.prepare('SELECT COUNT(*) AS n FROM products').first();
+ if(Number(count?.n||0)===0){
+  const seed=[
+   ['بامبو كيرلي','https://catalog.greenmoon-eg.workers.dev/assets/p_bamboo_curly.jpg',849,'الزرع والنباتات',1,0,1,0,1,99,99],
+   ['بامبو بوتس','https://catalog.greenmoon-eg.workers.dev/assets/p_bamboo_pothos.jpg',699,'الزرع والنباتات',1,0,1,0,2,99,99],
+   ['بوتس جولدن','https://catalog.greenmoon-eg.workers.dev/assets/p_pothos_gold.jpg',499,'الزرع والنباتات',0,0,0,1,3,99,99],
+   ['مونستيرا','https://catalog.greenmoon-eg.workers.dev/assets/p_monstera.jpg',699,'الزرع والنباتات',1,0,1,1,4,99,99],
+   ['فازة زجاجية','https://catalog.greenmoon-eg.workers.dev/assets/p_vase.jpg',250,'الفازات',0,0,0,0,5,99,99],
+   ['حجارة زينة ملونة','https://catalog.greenmoon-eg.workers.dev/assets/p_stones.jpg',40,'إكسسوارات الزينة',0,0,0,0,6,99,99]
+  ];
+  for(const p of seed) await env.DB.prepare('INSERT INTO products(name,image_url,price,category,featured,discount,hot_offer,new_product,sort_order,stock,max_qty,active) VALUES(?,?,?,?,?,?,?,?,?,?,?,1)').bind(...p).run();
+ }
 }
 
 const ADMIN_HTML = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Green Moon — لوحة التحكم</title><style>
@@ -34,7 +46,7 @@ function clearForm(){['id','name','price','old_price','wholesale_price','stock',
 async function load(){try{const d=await api('/api/admin/products');$('list').innerHTML=d.products.length?d.products.map(p=>'<div class="item"><img src="'+(p.image_url||'')+'"><div style="flex:1"><b>'+esc(p.name)+'</b><div class="small">بيع: '+p.price+' ج • جملة: '+p.wholesale_price+' ج • مخزون: '+p.stock+'</div><div>'+(p.hot_offer?'<span class="badge">🔥 عرض ساخن</span>':'')+(p.discount?'<span class="badge">🏷️ تخفيض</span>':'')+(p.featured?'<span class="badge">⭐ مميز</span>':'')+(p.new_product?'<span class="badge">🆕 جديد</span>':'')+'</div><div class="actions"><button class="muted" onclick='edit('+JSON.stringify(p)+')'>تعديل</button><button class="muted" onclick='navigator.clipboard.writeText(productUrl('+p.id+')).then(()=>msg("تم نسخ رابط المنتج ✅"))'>🔗 نسخ الرابط</button><button class="danger" onclick='removeP('+p.id+')'>إخفاء</button></div></div></div>').join(''):'لا توجد منتجات بعد.'}catch(e){$('list').textContent=e.message}}
 async function removeP(id){if(!confirm('إخفاء المنتج؟'))return;try{await api('/api/admin/products/'+id,{method:'DELETE'});msg('تم إخفاء المنتج');load()}catch(e){alert(e.message)}}
 const styles=[['luxury-emerald','Luxury Emerald',['#073b2a','#c9a227','#f5f0df']],['black-gold','Black & Gold',['#111','#c8a64b','#f7f3e8']],['botanical-cream','Botanical Cream',['#f6f0df','#315c45','#fff']],['forest-premium','Forest Premium',['#123d2d','#d7c59a','#eef0e8']],['royal-green','Royal Green',['#0d513b','#d4af37','#fff']],['minimal-nature','Minimal Nature',['#fff','#315d46','#e9eee8']],['dark-botanical','Dark Botanical',['#071f18','#8abf9b','#172e25']],['modern-glass','Modern Glass',['#102c25','#79a995','#edf6f2']],['luxury-boutique','Luxury Boutique',['#1d3128','#b99a5b','#efe8da']],['editorial-garden','Editorial Garden',['#24352b','#d5b978','#f4f1e7']]];
-function renderStyles(){ $('styleGrid').innerHTML=styles.map(s=>'<div class="style '+(selectedStyle===s[0]?'active':'')+'" onclick="selectedStyle=\''+s[0]+'\';renderStyles()"><div class="swatches">'+s[2].map(c=>'<i style="background:'+c+'"></i>').join('')+'</div><b>'+s[1]+'</b></div>').join('') }
+function renderStyles(){ $('styleGrid').innerHTML=styles.map(s=>'<div class="style '+(selectedStyle===s[0]?'active':'')+'" onclick="selectedStyle=\''+s[0]+'\';renderStyles()"><div class="swatches">'+s[1].map(c=>'<i style="background:'+c+'"></i>').join('')+'</div><b>'+s[1]+'</b></div>').join('') }
 async function loadSettings(){const d=await api('/api/admin/settings');settings=d.settings||{};$('store_name').value=settings.store_name||'Green Moon Plants and Flowers';$('store_desc').value=settings.store_desc||'';$('profile_url').value=settings.profile_url||'';$('cover_url').value=settings.cover_url||'';selectedStyle=settings.style||'luxury-emerald';renderStyles()}
 async function saveSettings(){try{const b={store_name:$('store_name').value.trim(),store_desc:$('store_desc').value,profile_url:$('profile_url').value.trim(),cover_url:$('cover_url').value.trim(),style:selectedStyle};await api('/api/admin/settings',{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(b)});msg('تم حفظ إعدادات المتجر وتفعيل الاستايل ✅')}catch(e){alert(e.message)}}
 window.addEventListener('DOMContentLoaded',async()=>{try{await load();await loadSettings()}catch(e){$('list').textContent='خطأ في تحميل لوحة التحكم: '+e.message}});</script></body></html>`;
