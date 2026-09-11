@@ -29,13 +29,66 @@ async function doctorGreenMoon(request, env){
   if(!request || request.method!=='POST') return json({error:'Method not allowed'},405);
   if(!env.OPENAI_API_KEY) return json({error:'ميزة دكتور جرين مون غير مفعلة بعد. أضف OPENAI_API_KEY إلى Secrets في Worker.'},503);
   try{
-    const body=await request.json(); const image=String(body.image||''); const note=String(body.note||'').slice(0,1200);
-    if(!image || !/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(image)) return json({error:'أرسل صورة واضحة للنبات بصيغة JPG أو PNG أو WebP.'},400);
-    const prompt=`أنت دكتور نباتات محترف لمتجر Green Moon Plants and Flowers في مصر. حلّل صورة النبات بعناية.\nمهم جدًا: لا تجزم بمرض أو آفة من صورة واحدة. إذا كانت الصورة غير كافية قل ذلك بوضوح واطلب صورًا إضافية. لا تخترع معلومات.\nأعطني نتيجة عربية مصرية بسيطة واحترافية بصيغة JSON فقط بالمفاتيح التالية: plant_name, confidence, condition, symptoms, likely_causes, treatment_now, watering, light, fertilizer, warnings, follow_up_questions.\nconfidence من 0 إلى 100. condition واحدة من: سليم، إجهاد، مشكلة ري، مشكلة إضاءة، نقص تغذية محتمل، آفة محتملة، مرض محتمل، غير واضح.\nكل قيمة نصية قصيرة وواضحة، والمفاتيح symptoms وlikely_causes وtreatment_now وwarnings وfollow_up_questions مصفوفات نصية.\nاذكر أن التشخيص مبدئي من الصورة إذا كان هناك أي شك. لا تقترح مبيدات أو مواد خطرة بجرعات محددة؛ إن احتاج الأمر مكافحة آفة فاقترح عزل النبات وفحصه واتباع ملصق منتج معتمد أو مختص.\nملاحظات العميل: ${note||'لا توجد ملاحظات إضافية.'}`;
-    const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-5.6-luna',input:[{role:'user',content:[{type:'input_text',text:prompt},{type:'input_image',image_url:image}]}],text:{format:{type:'json_object'}},max_output_tokens:1400})});
+    const body=await request.json(); const image=String(body.image||''); const note=String(body.note||'').slice(0,1200); const mode=body.mode==='space'?'space':'plant';
+    if(!image || !/^data:image\/(jpeg|jpg|png|webp);base64,/i.test(image)) return json({error:'أرسل صورة واضحة بصيغة JPG أو PNG أو WebP.'},400);
+    let prompt;
+    let inventory=[];
+    if(mode==='space'){
+      const inv=await env.DB.prepare("SELECT id,name,description,category,price,image_url,stock FROM products WHERE active=1 AND stock>0 ORDER BY sort_order ASC,id DESC LIMIT 60").all();
+      inventory=(inv.results||[]).map(p=>({id:p.id,name:p.name,description:p.description||'',category:p.category||'',price:p.price,image_url:p.image_url,stock:p.stock}));
+      const plants=inventory.filter(p=>{
+        const t=(p.name+' '+p.category+' '+p.description).toLowerCase();
+        return !/فاز|فازه|فازات|حجارة|حجر|سماد|مخصب|وعاء|إكسسوار|اكسسوار|ديكور/.test(t) && /بامبو|بوتس|pothos|monstera|مونستيرا|نبات|زرع|دراسينا|سانسيفيريا|زاميا|فيكس|spider|كالاتيا|calathea|ficus|dracaena|zamioculcas|snake|نخيل/.test(t);
+      });
+      prompt=`أنت مستشار نباتات وديكور داخلي محترف لمتجر Green Moon Plants and Flowers في مصر. العميل أرسل صورة لمكان ويريد اختيار نبات حقيقي متاح في المتجر.
+حلّل الصورة نفسها بجدية: نوع المكان، المساحة الظاهرة، مصدر الضوء، شدة الضوء التقريبية، قرب المكان من نافذة، وهل هناك مساحة أرضية/ترابيزة، ثم اختر أفضل النباتات من قائمة المخزون.
+مهم جدًا: الصورة الواضحة لا تعني أن الإضاءة الحقيقية مؤكدة؛ استخدم تقديرًا بصريًا، لكن لا ترفض الترشيح لمجرد عدم معرفة شدة الضوء بدقة.
+الهدف الأساسي هو إعطاء العميل ترشيحًا مفيدًا، وليس البحث عن تطابق مثالي. إذا كانت الصورة معقولة وهناك نباتات متاحة، يجب أن ترجع 1 إلى 3 ترشيحات، ولا ترجع مصفوفة recommendations فارغة إلا إذا كانت الصورة غير قابلة للفهم تمامًا أو لا يوجد أي نبات حي في المخزون.
+استخدم المعرفة العامة عن احتياجات النباتات: البوتس يتحمل الإضاءة المنخفضة إلى المتوسطة، المونستيرا تفضل ضوءًا ساطعًا غير مباشر، والبامبو/لاكي بامبو يناسب عادة الضوء الساطع غير المباشر ويمكنه تحمل مستويات أقل حسب النوع وطريقة الزراعة. لا تفترض أن كل المنتجات لها نفس الاحتياجات.
+رتب النتائج: 1) الأفضل، 2) مناسب جدًا، 3) بديل. اشرح سبب الاختيار في جملة واضحة تربط الصورة باحتياج النبات. اختر فقط من قائمة النباتات أدناه، ولا تخترع أسماء أو IDs.
+أخرج JSON فقط بهذه المفاتيح: summary, space_type, lighting, recommendations, avoid, follow_up_questions, confidence.
+recommendations مصفوفة كائنات: product_id, product_name, image_url, reason, placement, match_score. match_score رقم من 0 إلى 100.
+avoid وfollow_up_questions مصفوفتان نصيتان. confidence رقم من 0 إلى 100.
+إذا كانت الإضاءة غير مؤكدة، لا تقل 'لا يوجد نبات مناسب'؛ رشح نباتًا يتحمل نطاقًا أوسع واذكر أن العميل يمكنه تأكيد الإضاءة لاحقًا.
+ملاحظات العميل: ${note||'لا توجد ملاحظات إضافية.'}
+قائمة النباتات المتاحة فقط:
+${JSON.stringify(plants)}`;
+    }else{
+      prompt=`أنت دكتور نباتات محترف لمتجر Green Moon Plants and Flowers في مصر. حلّل صورة النبات بعناية.
+مهم جدًا: لا تجزم بمرض أو آفة من صورة واحدة. إذا كانت الصورة غير كافية قل ذلك بوضوح واطلب صورًا إضافية. لا تخترع معلومات.
+أعطني نتيجة عربية مصرية بسيطة واحترافية بصيغة JSON فقط بالمفاتيح التالية: plant_name, confidence, condition, symptoms, likely_causes, treatment_now, watering, light, fertilizer, warnings, follow_up_questions.
+confidence من 0 إلى 100. condition واحدة من: سليم، إجهاد، مشكلة ري، مشكلة إضاءة، نقص تغذية محتمل، آفة محتملة، مرض محتمل، غير واضح.
+كل قيمة نصية قصيرة وواضحة، والمفاتيح symptoms وlikely_causes وtreatment_now وwarnings وfollow_up_questions مصفوفات نصية.
+اذكر أن التشخيص مبدئي من الصورة إذا كان هناك أي شك. لا تقترح مبيدات أو مواد خطرة بجرعات محددة؛ إن احتاج الأمر مكافحة آفة فاقترح عزل النبات وفحصه واتباع ملصق منتج معتمد أو مختص.
+ملاحظات العميل: ${note||'لا توجد ملاحظات إضافية.'}`;
+    }
+    const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Authorization':'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({model:'gpt-5.6-luna',input:[{role:'user',content:[{type:'input_text',text:prompt},{type:'input_image',image_url:image}]}],text:{format:{type:'json_object'}},max_output_tokens:2200})});
     const raw=await r.text(); if(!r.ok) return json({error:'تعذر تشغيل دكتور جرين مون الآن.'},502);
     const data=JSON.parse(raw); const out=data.output?.flatMap(x=>x.content||[]).find(x=>x.type==='output_text')?.text||''; let result;
-    try{result=JSON.parse(out)}catch(e){return json({error:'تعذر قراءة نتيجة التشخيص.'},502)} return json({success:true,result});
+    try{result=JSON.parse(out)}catch(e){return json({error:'تعذر قراءة نتيجة التحليل.'},502)}
+
+    if(mode==='space'){
+      const byId=new Map(inventory.map(p=>[String(p.id),p]));
+      let recs=Array.isArray(result.recommendations)?result.recommendations:[];
+      recs=recs.map(x=>{const p=byId.get(String(x.product_id)); if(!p)return null; return {...x,product_id:p.id,product_name:p.name,image_url:p.image_url,match_score:Number(x.match_score||0)} }).filter(Boolean);
+      const plantPool=inventory.filter(p=>{
+        const t=(p.name+' '+p.category+' '+p.description).toLowerCase();
+        return !/فاز|فازه|فازات|حجارة|حجر|سماد|مخصب|وعاء|إكسسوار|اكسسوار|ديكور/.test(t) && /بامبو|بوتس|pothos|monstera|مونستيرا|نبات|زرع|دراسينا|سانسيفيريا|زاميا|فيكس|spider|كالاتيا|calathea|ficus|dracaena|zamioculcas|snake|نخيل/.test(t);
+      });
+      const light=String(result.lighting||'').toLowerCase();
+      const scorePlant=(p)=>{const t=(p.name+' '+p.category+' '+p.description).toLowerCase();let s=0;
+        if(/بوتس|pothos/.test(t)) s+=/ضعيف|منخفض|قليل/.test(light)?5:3;
+        if(/مونستيرا|monstera/.test(t)) s+=/قوي|ساطع|شمس|نافذة/.test(light)?5:2;
+        if(/بامبو|bamboo/.test(t)) s+=/متوسط|قوي|ساطع|غير مباشر/.test(light)?4:3;
+        if(/نبات|زرع/.test(t)) s+=1; return s;};
+      plantPool.sort((a,b)=>scorePlant(b)-scorePlant(a));
+      const seen=new Set(recs.map(x=>String(x.product_id)));
+      for(const p of plantPool){if(recs.length>=3)break;if(seen.has(String(p.id)))continue;const t=(p.name+' '+p.description).toLowerCase();let reason='اختيار مناسب للمكان بناءً على الإضاءة والمساحة الظاهرة في الصورة.'; if(/بوتس|pothos/.test(t))reason='اختيار مرن للمساحات الداخلية، ويتحمل الإضاءة المنخفضة إلى المتوسطة بشكل جيد.'; else if(/مونستيرا|monstera/.test(t))reason='اختيار ممتاز لو المكان فيه ضوء ساطع غير مباشر ومساحة تسمح بنمو الأوراق.'; else if(/بامبو|bamboo/.test(t))reason='مناسب للديكور الداخلي ويعمل جيدًا مع الإضاءة الساطعة غير المباشرة.'; recs.push({product_id:p.id,product_name:p.name,image_url:p.image_url,reason,placement:'ضعه في الركن المقترح بالصورة مع ترك مسافة مريحة عن مصدر الضوء',match_score:Math.min(95,70+scorePlant(p)*4)});seen.add(String(p.id));}
+      result.recommendations=recs.slice(0,3);
+      if(!result.recommendations.length) result.follow_up_questions=Array.isArray(result.follow_up_questions)?result.follow_up_questions:[];
+      result.summary=result.summary||'الصورة واضحة، ودي أفضل الترشيحات المتاحة حاليًا بناءً على شكل المكان والضوء الظاهر.';
+    }
+    return json({success:true,result});
   }catch(e){return json({error:'حدث خطأ أثناء تحليل الصورة.'},500)}
 }
 
