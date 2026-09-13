@@ -4,7 +4,10 @@ function json(data, status = 200) {
         status,
         headers: {
             "content-type": "application/json; charset=utf-8",
-            "cache-control": "no-store"
+            "cache-control": "no-store",
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
+            "access-control-allow-headers": "Content-Type,x-admin-token"
         }
     });
 }
@@ -44,7 +47,13 @@ async function openAI(env, prompt, imageData) {
     if (!r.ok)
         throw new Error("AI request failed");
     const data = await r.json();
-    return data.output_text || "";
+    const text = data.output_text || "";
+    try {
+        const cleaned = String(text).trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+        return JSON.parse(cleaned);
+    } catch (_) {
+        return text;
+    }
 }
 const INDEX_HTML = `<!doctype html>
 <html lang=\"ar\" dir=\"rtl\">
@@ -1416,6 +1425,14 @@ const COVER_B64 = "UklGRkpWAABXRUJQVlA4ID5WAABwCwKdASoZA0ECPlUqkkajoqyppBN5gZAKi
 export default {
     async fetch(request, env) {
         const u = new URL(request.url), p = u.pathname, method = request.method;
+        if (method === "OPTIONS") {
+            return new Response(null, { status: 204, headers: {
+                "access-control-allow-origin": "*",
+                "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
+                "access-control-allow-headers": "Content-Type,x-admin-token",
+                "access-control-max-age": "86400"
+            }});
+        }
         try {
             await env.DB.prepare("ALTER TABLE products ADD COLUMN delivery REAL NOT NULL DEFAULT 0").run();
         }
@@ -1569,27 +1586,43 @@ export default {
                 return json({ error: `فشل تسجيل الطلب: ${String(e?.message || e || "خطأ غير معروف")}` }, 500);
             }
         }
-        if (p === "/api/ai/space" && method === "POST") {
-            const b = await request.json();
-            if (!b.image)
-                return json({ error: "الصورة مطلوبة" }, 400);
-            const products = await env.DB.prepare("SELECT id,name,description,price,image_url,care_json FROM products WHERE active=1").all();
-            const prompt = `حلل صورة المكان بدقة واقترح من هذه المنتجات أفضل 3 نباتات. لا تطلب من العميل تحديد نوع المكان أو الإضاءة. استنتج من الصورة: الإضاءة، المساحة، الألوان، الأثاث، الأرضية، المنظور، المكان المتاح، والارتفاع/العرض التقريبي. أعد JSON فقط بالشكل:
-{"analysis":{"light":"","space":"","estimated_width_cm":0,"estimated_height_cm":0},"recommendations":[{"product_id":0,"match":0,"reason":"","estimated_height_cm":0,"estimated_width_cm":0}]}
-المنتجات: ${JSON.stringify(products.results.map((x) => ({ id: x.id, name: x.name, description: x.description, price: x.price })))}`;
-            const answer = await openAI(env, prompt, b.image);
-            if (!answer)
-                return json({ error: "AI غير مضبوط بعد. أضف OPENAI_API_KEY كـSecret." }, 503);
-            return json({ ok: true, result: answer });
-        }
-        if (p === "/api/ai/plant-doctor" && method === "POST") {
-            const b = await request.json();
-            if (!b.image)
-                return json({ error: "الصورة مطلوبة" }, 400);
-            const answer = await openAI(env, "حلل صورة النبات كخبير نباتات. أعطِ المشكلة المحتملة، أسبابها، مستوى الخطورة، خطوات العلاج، الري، الإضاءة، التربة، التسميد، وما يجب تجنبه. لا تدّعِ يقينًا طبيًا/علميًا إذا كانت الصورة غير كافية.", b.image);
-            if (!answer)
-                return json({ error: "AI غير مضبوط بعد." }, 503);
-            return json({ ok: true, result: answer });
+        if ((p === "/api/doctor" || p === "/api/ai/plant-doctor" || p === "/api/ai/space") && method === "POST") {
+            try {
+                const b = await request.json();
+                if (!b.image) return json({ success: false, error: "الصورة مطلوبة" }, 400);
+                const mode = p === "/api/ai/space" ? "space" : (p === "/api/doctor" ? (b.mode === "space" ? "space" : "plant") : "plant");
+                if (mode === "space") {
+                    const products = await env.DB.prepare("SELECT id,name,description,price,image_url,care_json FROM products WHERE active=1").all();
+                    const prompt = `أنت مساعد متخصص في نباتات الزينة المنزلية لصالح Green Moon في مصر. حلل صورة المكان فقط بما يمكن ملاحظته بصريًا. لا تخمّن قياسات دقيقة أو شدة إضاءة غير ظاهرة. اقترح فقط من قائمة المنتجات المتاحة أدناه. لا تخترع منتجًا أو معلومة.
+أعد JSON فقط بالشكل:
+{"summary":"","lighting":"","space_type":"","recommendations":[{"product_id":0,"product_name":"","reason":"","placement":"","match":0}],"avoid":[],"follow_up_questions":[]}
+اجعل match تقديرًا تقريبيًا 0-100 وليس ضمانًا. لو الصورة غير كافية قل ذلك بوضوح في summary وأضف سؤالًا مناسبًا في follow_up_questions.
+ملاحظات العميل: ${String(b.note || "").slice(0,1000)}
+المنتجات: ${JSON.stringify((products.results || []).map(x => ({id:x.id,name:x.name,description:x.description,price:x.price})))}`;
+                    const answer = await openAI(env, prompt, b.image);
+                    if (!answer) return json({ success: false, error: "خدمة التحليل غير مفعلة. يجب ضبط OPENAI_API_KEY كـSecret." }, 503);
+                    return json({ success: true, ok: true, result: answer });
+                }
+                const prompt = `أنت مساعد متخصص في تشخيص مشاكل نباتات الزينة المنزلية. مهمتك تقديم إرشاد عملي آمن وغير مضلل بناءً على الصورة والملاحظة فقط.
+قواعد إلزامية:
+- لا تدّعِ أن التشخيص مؤكد 100% من صورة واحدة.
+- إذا لم تكن الصورة كافية، اكتب plant_name="غير واضح" وcondition="غير واضحة" وconfidence<=40، واطلب صورًا/معلومات إضافية.
+- لا تخترع أعراضًا أو آفات أو أمراضًا غير ظاهرة.
+- فرّق بين ما تراه فعلًا وما هو سبب محتمل.
+- لا توصي بمبيدات أو جرعات كيميائية محددة إلا إذا كان تحديد المشكلة واضحًا جدًا؛ والأفضل توجيه العميل لمنتج مسجل واتباع الملصق.
+- أعطِ خطوات بسيطة قليلة المخاطر يمكن للعميل تنفيذها الآن.
+- إذا كانت هناك علامات خطورة شديدة (تعفن متقدم، انتشار سريع، حشرات كثيفة، انهيار شديد) وضّح أن الفحص المباشر أفضل.
+- استخدم لغة مصرية بسيطة وواضحة، بدون تخويف أو مصطلحات مربكة.
+أعد JSON فقط بهذا الشكل:
+{"plant_name":"","condition":"","confidence":0,"what_i_see":[],"symptoms":[],"likely_causes":[],"treatment_now":[],"watering":"","light":"","fertilizer":"","warnings":[],"follow_up_questions":[]}
+اجعل confidence تقديرًا تقريبيًا لجودة مطابقة الصورة، وليس نسبة يقين علمي.
+ملاحظة العميل: ${String(b.note || "").slice(0,1000)}`;
+                const answer = await openAI(env, prompt, b.image);
+                if (!answer) return json({ success: false, error: "خدمة التحليل غير مفعلة. يجب ضبط OPENAI_API_KEY كـSecret." }, 503);
+                return json({ success: true, ok: true, result: answer });
+            } catch (e) {
+                return json({ success: false, error: String(e?.message || e || "تعذر تحليل الصورة") }, 500);
+            }
         }
         if (p === "/api/admin/magazine-music" && method === "PUT") {
             if (!adminOK(request, env))
