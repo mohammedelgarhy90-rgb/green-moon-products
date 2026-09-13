@@ -39,13 +39,19 @@ async function openAI(env, prompt, imageData) {
             "content-type": "application/json"
         },
         body: JSON.stringify({
-            model: "gpt-5",
+            model: "gpt-5.6-luna",
             input: [{ role: "user", content }],
             max_output_tokens: 1800
         })
     });
-    if (!r.ok)
-        throw new Error("AI request failed");
+    if (!r.ok) {
+        let detail = "AI request failed";
+        try {
+            const err = await r.json();
+            detail = err?.error?.message || err?.error?.code || detail;
+        } catch (_) {}
+        throw new Error(`AI request failed (${r.status}): ${detail}`);
+    }
     const data = await r.json();
     const text = data.output_text || "";
     try {
