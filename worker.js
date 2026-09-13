@@ -753,7 +753,7 @@ updateDashboard();
 /* Green Moon core controls — restored/fixed */
 function openCart(){renderCart();document.getElementById('drawer')?.classList.add('show')}
 function closeCart(){document.getElementById('drawer')?.classList.remove('show')}
-function openAdmin(){document.getElementById('admin')?.classList.add('show');renderAdmin();window.scrollTo({top:document.getElementById('admin').offsetTop-10,behavior:'smooth'})}
+function openAdmin(){document.getElementById('admin')?.classList.add('show');renderAdmin();loadCmsContent();window.scrollTo({top:document.getElementById('admin').offsetTop-10,behavior:'smooth'})}
 function closeAdmin(){document.getElementById('admin')?.classList.remove('show')}
 function adminTab(name,btn){document.querySelectorAll('#admin .tabPanel').forEach(x=>x.classList.remove('on'));document.getElementById('tab-'+name)?.classList.add('on');document.querySelectorAll('#admin .tab').forEach(x=>x.classList.remove('on'));btn?.classList.add('on');if(name==='offers')renderFlashAdmin();if(name==='content')loadCmsContent()}
 function openCheckout(){if(!cart.length){toast('السلة فاضية 🌿');return}closeCart();document.getElementById('checkoutModal')?.classList.add('show')}
@@ -781,7 +781,7 @@ function localProductPayload(p){const sections=getSections(p);const care={...car
 let cmsContent={}; let cmsArticles=[];
 function cmsVal(id){const e=document.getElementById(id);return e?e.value:''}
 function cmsSet(id,v){const e=document.getElementById(id);if(e)e.value=v||''}
-async function loadCmsContent(){if(!window.GM_PRODUCTION)return;try{const r=await gmAdminFetch('/admin/cms');if(!r)return;cmsContent=r.content||{};cmsArticles=r.articles||[];const c=cmsContent;cmsSet('cmsHeroWelcome',c.heroWelcome);cmsSet('cmsHeroTitle',c.heroTitle);cmsSet('cmsHeroDesc',c.heroDesc);cmsSet('cmsHeroButton',c.heroButton);for(let i=1;i<=4;i++){cmsSet('cmsF'+i+'Title',c['f'+i+'Title']);cmsSet('cmsF'+i+'Text',c['f'+i+'Text']);cmsSet('cmsF'+i+'Icon',c['f'+i+'Icon'])}cmsSet('cmsAboutTitle',c.aboutTitle);cmsSet('cmsAboutText',c.aboutText);cmsSet('cmsVision',c.vision);cmsSet('cmsOwnerName',c.ownerName);cmsSet('cmsOwnerBio',c.ownerBio);cmsSet('cmsPhone',c.phone);cmsSet('cmsWa',c.wa);cmsSet('cmsAddress',c.address);cmsSet('cmsHours',c.hours);cmsSet('cmsContactNote',c.contactNote);cmsSet('cmsArticlesTitle',c.articlesTitle);cmsSet('cmsArticlesSub',c.articlesSub);cmsSet('cmsPhoneLabel',c.phoneLabel||'📱 الهاتف');cmsSet('cmsWaLabel',c.waLabel||'💬 واتساب');cmsSet('cmsAddressLabel',c.addressLabel||'📍 العنوان');cmsSet('cmsHoursLabel',c.hoursLabel||'🕐 مواعيد العمل');['cmsShowArticles','cmsShowAbout','cmsShowContact'].forEach(id=>{const e=document.getElementById(id);if(e)e.checked=c[id]!==false});renderCmsArticles();loadMenuAdmin()}catch(e){toast('تعذر تحميل محتوى الموقع')}}
+async function loadCmsContent(){try{const r=await gmAdminFetch('/admin/cms');if(!r)return;cmsContent=r.content||{};cmsArticles=r.articles||[];const c=cmsContent;cmsSet('cmsHeroWelcome',c.heroWelcome);cmsSet('cmsHeroTitle',c.heroTitle);cmsSet('cmsHeroDesc',c.heroDesc);cmsSet('cmsHeroButton',c.heroButton);for(let i=1;i<=4;i++){cmsSet('cmsF'+i+'Title',c['f'+i+'Title']);cmsSet('cmsF'+i+'Text',c['f'+i+'Text']);cmsSet('cmsF'+i+'Icon',c['f'+i+'Icon'])}cmsSet('cmsAboutTitle',c.aboutTitle);cmsSet('cmsAboutText',c.aboutText);cmsSet('cmsVision',c.vision);cmsSet('cmsOwnerName',c.ownerName);cmsSet('cmsOwnerBio',c.ownerBio);cmsSet('cmsPhone',c.phone);cmsSet('cmsWa',c.wa);cmsSet('cmsAddress',c.address);cmsSet('cmsHours',c.hours);cmsSet('cmsContactNote',c.contactNote);cmsSet('cmsArticlesTitle',c.articlesTitle);cmsSet('cmsArticlesSub',c.articlesSub);cmsSet('cmsPhoneLabel',c.phoneLabel||'📱 الهاتف');cmsSet('cmsWaLabel',c.waLabel||'💬 واتساب');cmsSet('cmsAddressLabel',c.addressLabel||'📍 العنوان');cmsSet('cmsHoursLabel',c.hoursLabel||'🕐 مواعيد العمل');['cmsShowArticles','cmsShowAbout','cmsShowContact'].forEach(id=>{const e=document.getElementById(id);if(e)e.checked=c[id]!==false});renderCmsArticles();loadMenuAdmin()}catch(e){console.error('CMS load failed',e);toast('تعذر تحميل محتوى الموقع: '+(e?.message||'خطأ'))}}
 function renderCmsArticles(){const box=document.getElementById('cmsArticlesAdmin');if(!box)return;if(!cmsArticles.length){box.innerHTML='<div class=\"empty\">لا توجد مقالات بعد.</div>';return}box.innerHTML=cmsArticles.map(function(a){return '<div data-aid=\"'+a.id+'\" style=\"background:#f5f8f5;border:1px solid #dce8df;border-radius:14px;padding:10px;margin:8px 0\"><div class=\"grid2\"><div class=\"field\"><label>العنوان</label><input id=\"aTitle'+a.id+'\" value=\"'+escapeAttr(a.title||'')+'\"></div><div class=\"field\"><label>الصورة (رابط اختياري)</label><input id=\"aImage'+a.id+'\" value=\"'+escapeAttr(a.image_url||'')+'\"></div><div class=\"field\" style=\"grid-column:1/-1\"><label>ملخص</label><input id=\"aExcerpt'+a.id+'\" value=\"'+escapeAttr(a.excerpt||'')+'\"></div><div class=\"field\" style=\"grid-column:1/-1\"><label>المحتوى</label><textarea id=\"aContent'+a.id+'\">'+escapeHtml(a.content||'')+'</textarea></div></div><div class=\"actions\"><button class=\"mini\" onclick=\"saveCmsArticle('+a.id+')\">حفظ المقال</button><button class=\"mini danger\" onclick=\"deleteCmsArticle('+a.id+')\">حذف</button></div></div>'}).join('')}
 async function saveCmsContent(){const c={heroWelcome:cmsVal('cmsHeroWelcome'),heroTitle:cmsVal('cmsHeroTitle'),heroDesc:cmsVal('cmsHeroDesc'),heroButton:cmsVal('cmsHeroButton')};for(let i=1;i<=4;i++){c['f'+i+'Title']=cmsVal('cmsF'+i+'Title');c['f'+i+'Text']=cmsVal('cmsF'+i+'Text');c['f'+i+'Icon']=cmsVal('cmsF'+i+'Icon')}c.aboutTitle=cmsVal('cmsAboutTitle');c.aboutText=cmsVal('cmsAboutText');c.vision=cmsVal('cmsVision');c.ownerName=cmsVal('cmsOwnerName');c.ownerBio=cmsVal('cmsOwnerBio');c.phone=cmsVal('cmsPhone');c.wa=cmsVal('cmsWa');c.address=cmsVal('cmsAddress');c.hours=cmsVal('cmsHours');c.contactNote=cmsVal('cmsContactNote');c.articlesTitle=cmsVal('cmsArticlesTitle');c.articlesSub=cmsVal('cmsArticlesSub');c.phoneLabel=cmsVal('cmsPhoneLabel')||'📱 الهاتف';c.waLabel=cmsVal('cmsWaLabel')||'💬 واتساب';c.addressLabel=cmsVal('cmsAddressLabel')||'📍 العنوان';c.hoursLabel=cmsVal('cmsHoursLabel')||'🕐 مواعيد العمل';c.showArticles=document.getElementById('cmsShowArticles')?.checked!==false;c.showAbout=document.getElementById('cmsShowAbout')?.checked!==false;c.showContact=document.getElementById('cmsShowContact')?.checked!==false;const r=await gmAdminFetch('/admin/cms/content',{method:'PUT',body:JSON.stringify(c)});if(r){cmsContent=c;toast('تم حفظ محتوى الموقع بالكامل ✓')}}
 async function loadMenuAdmin(){if(!window.GM_PRODUCTION)return;try{const r=await gmAdminFetch('/admin/menu');if(!r)return;const box=document.getElementById('menuAdminRows');if(!box)return;const items=r.items||[];box.innerHTML=items.length?items.map(function(m){return '<div style="background:#f5f8f5;border:1px solid #dce8df;border-radius:14px;padding:10px;margin:8px 0"><div class="grid2"><div class="field"><label>اسم الزر</label><input id="mLabel'+m.id+'" value="'+escapeAttr(m.label||'')+'"></div><div class="field"><label>الوجهة</label><input id="mTarget'+m.id+'" value="'+escapeAttr(m.target||'')+'"></div><div class="field"><label>الترتيب</label><input id="mSort'+m.id+'" type="number" value="'+(Number(m.sort_order)||0)+'"></div><label style="display:flex;gap:8px;align-items:center"><input id="mActive'+m.id+'" type="checkbox" '+(m.active!==0?'checked':'')+'> ظاهر</label></div><div class="actions"><button class="mini" onclick="saveMenuItem('+m.id+')">حفظ</button><button class="mini danger" onclick="deleteMenuItem('+m.id+')">حذف</button></div></div>'}).join(''):'<div class="empty">لا توجد أزرار مخصصة. أضف أول زر.</div>'}catch(e){console.warn(e)}}
@@ -1436,12 +1436,17 @@ export default {
             await env.DB.prepare("CREATE TABLE IF NOT EXISTS menu_items(id INTEGER PRIMARY KEY AUTOINCREMENT,label TEXT NOT NULL,target TEXT NOT NULL DEFAULT '#home',sort_order INTEGER NOT NULL DEFAULT 0,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
         }
         catch (_) { }
+        try {
+            await env.DB.prepare("CREATE TABLE IF NOT EXISTS cms_content(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL DEFAULT '{}',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+        }
+        catch (_) { }
         if (p === "/admin" || p === "/admin/" || p === "/" || p === "/index.html")
             return new Response(INDEX_HTML, { headers: { "content-type": "text/html; charset=utf-8" } });
         if (p === "/api/health")
             return json({ ok: true, service: "green-moon" });
         if (p === "/api/store" && method === "GET") {
             const settings = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
+            const cmsRow = await env.DB.prepare("SELECT data FROM cms_content WHERE id=1").first();
             const cats = await env.DB.prepare("SELECT id,name,slug,icon,image_url,sort_order FROM categories WHERE active=1 ORDER BY sort_order,id").all();
             const ps = await env.DB.prepare("SELECT id,category_id,name,slug,description,image_url,price,old_price,stock,max_qty,delivery,care_json FROM products WHERE active=1 ORDER BY id DESC").all();
             const offers = await env.DB.prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order FROM flash_offers WHERE active=1 ORDER BY sort_order,id").all();
@@ -1449,7 +1454,24 @@ export default {
             const articles = await env.DB.prepare("SELECT id,title,excerpt,content,image_url,sort_order,created_at FROM articles WHERE active=1 ORDER BY sort_order,id DESC").all();
             const menu = await env.DB.prepare("SELECT id,label,target,sort_order FROM menu_items WHERE active=1 ORDER BY sort_order,id").all();
             return json({
-                settings: (() => { const z = settings ? JSON.parse(settings.data) : {}; z.wa = z.wa || "01151054863"; z.msg = z.msg || "شكرًا لاختيارك Green Moon 🌿 يسعدنا تجهيز طلبك."; z.flashEnabled = z.flashEnabled !== false; z.flashShowSeconds = Math.max(1, Number(z.flashShowSeconds) || 30); z.flashGapSeconds = Math.max(1, Number(z.flashGapSeconds) || 60); z.flashStartSeconds = Math.max(0, Number(z.flashStartSeconds) || 20); z.scratchEnabled = z.scratchEnabled !== false; z.scratchPercent = Math.max(0, Math.min(100, Number(z.scratchPercent) || 25)); return z; })(),
+                settings: (() => {
+                    const z = settings ? JSON.parse(settings.data) : {};
+                    let cms = {};
+                    if (cmsRow?.data) {
+                        try { cms = JSON.parse(cmsRow.data || "{}"); } catch (_) { cms = {}; }
+                    }
+                    if (!Object.keys(cms).length && z.cms) cms = z.cms;
+                    z.cms = cms;
+                    z.wa = z.wa || "01151054863";
+                    z.msg = z.msg || "شكرًا لاختيارك Green Moon 🌿 يسعدنا تجهيز طلبك.";
+                    z.flashEnabled = z.flashEnabled !== false;
+                    z.flashShowSeconds = Math.max(1, Number(z.flashShowSeconds) || 30);
+                    z.flashGapSeconds = Math.max(1, Number(z.flashGapSeconds) || 60);
+                    z.flashStartSeconds = Math.max(0, Number(z.flashStartSeconds) || 20);
+                    z.scratchEnabled = z.scratchEnabled !== false;
+                    z.scratchPercent = Math.max(0, Math.min(100, Number(z.scratchPercent) || 25));
+                    return z;
+                })(),
                 categories: cats.results,
                 products: ps.results,
                 offers: offers.results,
@@ -1598,9 +1620,16 @@ export default {
         if (p === "/api/admin/cms" && method === "GET") {
             if (!adminOK(request, env))
                 return json({ error: "Unauthorized" }, 401);
-            const row = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
-            const all = row ? JSON.parse(row.data || "{}") : {};
-            const c = all.cms || {};
+            const cmsRow = await env.DB.prepare("SELECT data FROM cms_content WHERE id=1").first();
+            let c = {};
+            if (cmsRow?.data) {
+                try { c = JSON.parse(cmsRow.data || "{}"); } catch (_) { c = {}; }
+            }
+            if (!Object.keys(c).length) {
+                const row = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
+                const all = row ? JSON.parse(row.data || "{}") : {};
+                c = all.cms || {};
+            }
             const ar = await env.DB.prepare("SELECT id,title,excerpt,content,image_url,sort_order,active FROM articles ORDER BY sort_order,id DESC").all();
             return json({ content: c, articles: ar.results || [] });
         }
@@ -1608,11 +1637,18 @@ export default {
             if (!adminOK(request, env))
                 return json({ error: "Unauthorized" }, 401);
             const body = await request.json();
+            const safeBody = body && typeof body === "object" ? body : {};
+            await env.DB.prepare(`INSERT INTO cms_content(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP`).bind(JSON.stringify(safeBody)).run();
+
+            // Keep legacy settings.cms synchronized for compatibility, but never replace the rest of settings.
             const row = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
-            const all = row ? JSON.parse(row.data || "{}") : {};
-            all.cms = body;
+            let all = {};
+            if (row?.data) {
+                try { all = JSON.parse(row.data || "{}"); } catch (_) { all = {}; }
+            }
+            all.cms = safeBody;
             await env.DB.prepare(`INSERT INTO settings(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP`).bind(JSON.stringify(all)).run();
-            return json({ ok: true, content: body });
+            return json({ ok: true, content: safeBody });
         }
         if (p === "/api/admin/articles" && method === "POST") {
             if (!adminOK(request, env))
@@ -1670,11 +1706,17 @@ export default {
             if (!adminOK(request, env))
                 return json({ error: "Unauthorized" }, 401);
             const body = await request.json();
+            const row = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
+            let current = {};
+            if (row?.data) {
+                try { current = JSON.parse(row.data || "{}"); } catch (_) { current = {}; }
+            }
+            const merged = { ...current, ...(body && typeof body === "object" ? body : {}) };
             await env.DB.prepare(`
       INSERT INTO settings(id,data) VALUES(1,?)
       ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP
-    `).bind(JSON.stringify(body)).run();
-            return json({ ok: true });
+    `).bind(JSON.stringify(merged)).run();
+            return json({ ok: true, settings: merged });
         }
         if (p.startsWith("/api/admin/products/") && (method === "PUT" || method === "DELETE")) {
             if (!adminOK(request, env))
