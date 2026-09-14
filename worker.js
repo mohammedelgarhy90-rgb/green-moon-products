@@ -13,8 +13,18 @@ export default {
       const file = path.slice('/assets/'.length);
       const allowed = /^[A-Za-z0-9._-]+$/.test(file);
       if (!allowed) return new Response('Not found', {status:404});
-      const r = await fetch('https://raw.githubusercontent.com/mohammedelgarhy90-rgb/green-moon-products/main/assets/' + encodeURIComponent(file), {cf:{cacheTtl:86400,cacheEverything:true}});
-      if (!r.ok) return new Response('Asset not found', {status:r.status});
+      const urls = [
+        'https://raw.githubusercontent.com/mohammedelgarhy90-rgb/green-moon-products/main/' + encodeURIComponent(file),
+        'https://raw.githubusercontent.com/mohammedelgarhy90-rgb/green-moon-products/main/assets/' + encodeURIComponent(file)
+      ];
+      let r = null;
+      for (const u of urls) {
+        try {
+          const x = await fetch(u, {cf:{cacheTtl:86400,cacheEverything:true}});
+          if (x.ok) { r = x; break; }
+        } catch (_) {}
+      }
+      if (!r) return new Response('Asset not found', {status:404});
       const h = new Headers(r.headers); h.set('Cache-Control','public, max-age=86400');
       return new Response(r.body,{status:r.status,headers:h});
     }
