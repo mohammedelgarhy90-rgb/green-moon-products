@@ -1473,7 +1473,19 @@ export default {
             }
             catch (_) { }
             try {
-                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS cms_content(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL DEFAULT '{}',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL DEFAULT '{}',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+                await getDB(env).prepare("INSERT OR IGNORE INTO settings(id,data) VALUES(1,?)").bind(JSON.stringify({
+                    name:"Green Moon Plants & Flowers",
+                    wa:"2011551084863",
+                    address:"الدقي — داخل المتحف الزراعي",
+                    msg:"أهلاً بيك في Green Moon 🌿",
+                    about:"نباتات زينة طبيعية مختارة بعناية.",
+                    ownerName:"Green Moon",
+                    ownerBio:"",
+                    flashEnabled:true,
+                    scratchEnabled:true,
+                    scratchPercent:25
+                })).run();
             }
             catch (_) { }
             if (p === "/admin" || p === "/admin/" || p === "/" || p === "/index.html")
