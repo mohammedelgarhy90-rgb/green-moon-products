@@ -24,6 +24,16 @@ export default {
           if (x.ok) { r = x; break; }
         } catch (_) {}
       }
+      if (!r) {
+        const fallback = file === 'doctor-icon.png' ? 'logo.png' : (file === 'doctor-hero.png' ? 'hero.png' : null);
+        if (fallback) {
+          try {
+            const fu = 'https://raw.githubusercontent.com/mohammedelgarhy90-rgb/green-moon-products/main/' + fallback;
+            const fx = await fetch(fu, {cf:{cacheTtl:86400,cacheEverything:true}});
+            if (fx.ok) r = fx;
+          } catch (_) {}
+        }
+      }
       if (!r) return new Response('Asset not found', {status:404});
       const h = new Headers(r.headers); h.set('Cache-Control','public, max-age=86400');
       return new Response(r.body,{status:r.status,headers:h});
