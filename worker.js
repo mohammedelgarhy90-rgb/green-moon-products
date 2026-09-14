@@ -102,7 +102,6 @@ box-shadow:inset 0 2px 7px #fff9,inset 0 -5px 12px #3338;mix-blend-mode:normal}
 body.admin-route > .top,body.admin-route > .nav,body.admin-route > main,body.admin-route > footer,body.admin-route > .gmMagazineMusic,body.admin-route > .gmMusicFallback,body.admin-route > #gmWelcome{display:none!important}
 body.admin-route #admin{display:block!important;margin-top:20px}
 .adminGear{display:none!important}
-.productPage{max-width:1180px;margin:28px auto 70px;padding:0 18px}.productPageCard{background:#fff;border:1px solid var(--line);border-radius:30px;overflow:hidden;box-shadow:0 20px 55px rgba(18,63,44,.10);display:grid;grid-template-columns:1fr 1fr}.productPageImage{min-height:520px;background:#f1eee6;display:grid;place-items:center;padding:25px}.productPageImage img{width:100%;height:100%;max-height:520px;object-fit:contain;border-radius:22px}.productPageInfo{padding:38px;display:flex;flex-direction:column;justify-content:center}.productPageKicker{font-size:11px;color:var(--g3);font-weight:950;letter-spacing:1.5px}.productPageInfo h1{font-size:clamp(32px,5vw,54px);margin:10px 0;color:var(--g)}.productPageDesc{font-size:14px;color:var(--muted);line-height:2;margin:8px 0 16px}.productPagePrice{display:flex;align-items:baseline;gap:10px;margin:10px 0 20px}.productPagePrice b{font-size:32px;color:var(--g)}.productPagePrice s{color:#9ca7a1}.productPageActions{display:flex;gap:9px;flex-wrap:wrap}.productPageBack{margin-bottom:12px}.productPageMeta{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin:18px 0}.productPageMeta div{background:#f5f8f4;border-radius:14px;padding:11px;font-size:11px;color:#50645a}.productPageNotFound{background:#fff;border:1px solid var(--line);border-radius:25px;padding:35px;text-align:center}.productShare{background:#edf5ef;color:var(--g);padding:12px 16px;border-radius:14px;font-weight:950}.productPageQty{display:flex;align-items:center;gap:12px;margin:5px 0 14px}.productPageQty button{width:38px;height:38px;border-radius:12px;background:#edf5ef;color:var(--g);font-size:22px;font-weight:950}.productPageQty strong{min-width:25px;text-align:center;font-size:18px}@media(max-width:760px){.productPage{padding:0 12px;margin-top:16px}.productPageCard{grid-template-columns:1fr}.productPageImage{min-height:330px}.productPageInfo{padding:24px 20px}.productPageInfo h1{font-size:34px}}
 .section{content-visibility:auto;contain-intrinsic-size:600px}
 .pic img,.cartpic img,.upsellPic img{loading:lazy;image-rendering:auto}.adminBox{background:#fff;border:1px solid var(--line);border-radius:28px;padding:22px;box-shadow:var(--shadow)}.tabs{display:flex;gap:7px;overflow:auto;margin:16px 0}.tab{padding:10px 13px;background:#edf4ef;border-radius:11px;color:var(--g);font-weight:900;font-size:11px;white-space:nowrap}.tab.on{background:var(--g);color:#fff}.tabPanel{display:none}.tabPanel.on{display:block}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px}.field label{display:block;font-size:10px;color:#63726a;font-weight:900;margin-bottom:5px}.field input,.field textarea,.field select{width:100%;border:1px solid var(--line);background:#fbfdfb;padding:11px;border-radius:12px;outline:0}.field textarea{min-height:90px;resize:vertical}.adminList{margin-top:17px}.adminItem{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
 .uploadBox{border:2px dashed #b9c9bf;background:#f8fbf8;border-radius:18px;padding:14px;text-align:center}
@@ -1315,7 +1314,6 @@ async function gmLoadStore(){
   if(window.GM_SERVER_STORE.settings?.magazineMusic&&typeof window.GM_SET_MAGAZINE_MUSIC==='function')window.GM_SET_MAGAZINE_MUSIC(window.GM_SERVER_STORE.settings.magazineMusic);
   if(typeof renderSectionHub==='function')renderSectionHub();refreshAiPlantSelect();filterProducts();renderAdmin();updateDashboard?.();
   applySettings?.();fillSettings?.();
-  renderProductPage();
  }catch(e){console.warn('Server store unavailable',e);renderSectionHub();refreshAiPlantSelect();filterProducts()}
 }
 
@@ -1356,34 +1354,18 @@ function initWelcomeMusic(){
  window.GM_WELCOME_PLAY=enterNow;
 }
 
-/* Stable public product pages: /product/<id> uses the same live D1 data as admin. */
-function isProductRoute(){ return /^\\/product\\/\\d+\\/?$/.test(location.pathname); }
-function productRouteId(){ const m=location.pathname.match(/^\\/product\\/(\\d+)/); return m?String(m[1]):''; }
-function renderProductPage(){
- if(!isProductRoute()) return;
- const id=productRouteId(), p=products.find(x=>String(x.id)===id);
- document.body.classList.add('product-route');
- document.querySelector('main.wrap')?.remove();
- document.querySelector('footer.footer')?.remove();
- const existing=document.getElementById('productPage'); if(existing) existing.remove();
- const page=document.createElement('section'); page.id='productPage'; page.className='productPage';
- if(!p){page.innerHTML='<div class="productPageNotFound"><div style="font-size:42px">🌿</div><h2>المنتج غير متاح</h2><p style="color:var(--muted)">المنتج غير موجود أو تم إخفاؤه من لوحة التحكم.</p><a class="btn dark" href="/">العودة للمتجر</a></div>'}
- else {
- const img=p.image?'<img src="'+escapeAttr(p.image)+'" alt="'+escapeAttr(p.name)+'">':'<div style="font-size:120px">🌿</div>';
- const old=Number(p.old||0)>Number(p.price||0)?'<s>'+Number(p.old)+' ج</s>':'';
- const stock=Number(p.stock??0);
- page.innerHTML='<div class="productPageBack"><a class="productShare" href="/">← العودة للمتجر</a></div><article class="productPageCard"><div class="productPageImage">'+img+'</div><div class="productPageInfo"><div class="productPageKicker">GREEN MOON • PRODUCT #'+escapeHtml(id)+'</div><h1>'+escapeHtml(p.name||'منتج Green Moon')+'</h1><div class="productPageDesc">'+escapeHtml(p.desc||'منتج مختار بعناية من Green Moon.')+'</div><div class="productPagePrice"><b>'+Number(p.price||0)+' ج</b>'+old+'</div><div class="productPageMeta"><div>📦 المخزون: '+stock+'</div><div>🚚 التوصيل: '+Number(p.delivery||0)+' ج</div></div><div class="productPageQty"><button onclick="productPageQty(-1)">−</button><strong id="productPageQty">1</strong><button onclick="productPageQty(1)">+</button></div><div class="productPageActions"><button class="btn dark" onclick="productPageAdd(\''+escapeAttr(id)+'\')">🛒 أضف للسلة</button><button class="productShare" onclick="navigator.clipboard?.writeText(location.href).then(()=>toast(\'تم نسخ رابط المنتج ✓\')).catch(()=>toast(\'انسخ الرابط من شريط العنوان\'))">🔗 نسخ رابط المنتج</button></div>'+(p.cat==='plants'?'<button class="mini" style="margin-top:12px" onclick="showCare(\''+escapeAttr(id)+'\')">🌿 طريقة العناية</button>':'')+'</div></article>';
- }
- document.body.appendChild(page);
-}
-function productPageQty(delta){const el=document.getElementById('productPageQty');if(!el)return;el.textContent=String(Math.max(1,Math.min(99,(Number(el.textContent)||1)+delta)));}
-function productPageAdd(id){const p=products.find(x=>String(x.id)===String(id));if(!p)return toast('المنتج غير متاح');const q=Math.max(1,Number(document.getElementById('productPageQty')?.textContent)||1);for(let i=0;i<q;i++)add(id);toast('تمت إضافة المنتج للسلة ✓');}
-
 /* Admin route: no public gear, admin lives at /admin */
-async function initAdminRoute(){if(location.pathname==='/admin'||location.pathname==='/admin/'){document.body.classList.add('admin-route');document.getElementById('admin')?.classList.add('show');adminTab('products',document.querySelector('#admin .tab'));await gmLoadAdminProducts();renderAdmin()}}
+async function initAdminRoute(){
+  if(location.pathname==='/admin'||location.pathname==='/admin/'){
+    document.body.classList.add('admin-route');
+    const a=document.getElementById('admin');
+    if(a)a.classList.add('show');
+    try{adminTab('products',document.querySelector('#admin .tab'));await gmLoadAdminProducts();renderAdmin()}catch(e){console.error(e)}
+  }
+}
 
-window.addEventListener('DOMContentLoaded',()=>{
- try{renderSectionHub();renderSectionChecks('pSections',[]);refreshAiPlantSelect();filterProducts();initAdminRoute();initWelcomeMusic();if(isProductRoute())setTimeout(renderProductPage,500);}catch(e){console.error('GM enhancement init',e)}
+window.addEventListener('DOMContentLoaded,()=>{
+ try{renderSectionHub();renderSectionChecks('pSections',[]);refreshAiPlantSelect();filterProducts();initAdminRoute();initWelcomeMusic();}catch(e){console.error('GM enhancement init',e)}
 });
 </script>
 <style>
@@ -1490,6 +1472,11 @@ export default {
             }
             catch (_) { }
             try {
+                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL DEFAULT '{}', updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+                await getDB(env).prepare("INSERT OR IGNORE INTO settings(id,data) VALUES(1,'{}')").run();
+            }
+            catch (_) { }
+            try {
                 await getDB(env).prepare("CREATE TABLE IF NOT EXISTS articles(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,excerpt TEXT NOT NULL DEFAULT '',content TEXT NOT NULL DEFAULT '',image_url TEXT NOT NULL DEFAULT '',active INTEGER NOT NULL DEFAULT 1,sort_order INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
             }
             catch (_) { }
@@ -1501,13 +1488,11 @@ export default {
                 await getDB(env).prepare("CREATE TABLE IF NOT EXISTS cms_content(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL DEFAULT '{}',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
             }
             catch (_) { }
-            try {
-                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS settings(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL DEFAULT '{}',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
-                await getDB(env).prepare("INSERT OR IGNORE INTO settings(id,data) VALUES(1,'{}')").run();
+            if (p === "/admin" || p === "/admin/") {
+                return new Response(INDEX_HTML.replace("<body>", "<body class=\"admin-route\">"), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
             }
-            catch (_) { }
-            if (p === "/admin" || p === "/admin/" || p === "/" || p === "/index.html" || /^\/product\/\d+\/?$/.test(p))
-                return new Response(INDEX_HTML, { headers: { "content-type": "text/html; charset=utf-8" } });
+            if (p === "/" || p === "/index.html")
+                return new Response(INDEX_HTML, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
             if (p === "/api/health")
                 return json({ ok: true, service: "green-moon" });
             if (p === "/api/store" && method === "GET") {
@@ -1811,8 +1796,17 @@ export default {
                     return json({ ok: true });
                 }
                 const b = await request.json();
-                await getDB(env).prepare(`UPDATE products SET name=?,description=?,image_url=?,price=?,old_price=?,wholesale_price=?,cost_price=?,stock=?,max_qty=?,delivery=?,care_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-                    .bind(b.name, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {}), id).run();
+                let categoryId = b.categoryId != null ? Number(b.categoryId) : null;
+                if (!categoryId && b.categorySlug) {
+                    const cr = await getDB(env).prepare("SELECT id FROM categories WHERE slug=? AND active=1 LIMIT 1").bind(String(b.categorySlug)).first();
+                    categoryId = cr?.id ? Number(cr.id) : null;
+                }
+                if (!categoryId) {
+                    const old = await getDB(env).prepare("SELECT category_id FROM products WHERE id=?").bind(id).first();
+                    categoryId = old?.category_id ?? null;
+                }
+                await getDB(env).prepare(`UPDATE products SET category_id=?,name=?,description=?,image_url=?,price=?,old_price=?,wholesale_price=?,cost_price=?,stock=?,max_qty=?,delivery=?,care_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+                    .bind(categoryId, b.name, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {}), id).run();
                 return json({ ok: true });
             }
             // Category management for the standalone Green Moon admin panel.
@@ -1851,15 +1845,25 @@ export default {
                 const r = await getDB(env).prepare("SELECT id,order_number,customer_name,phone,whatsapp,governorate,area,building,floor,apartment,notes,subtotal,delivery,discount,adjustment,total,status,created_at FROM orders ORDER BY id DESC LIMIT 200").all();
                 return json({ orders: r.results || [] });
             }
+            if (p === "/api/admin/products" && method === "GET") {
+                if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+                const r = await getDB(env).prepare("SELECT id,category_id,name,slug,description,image_url,price,old_price,wholesale_price,cost_price,stock,max_qty,delivery,care_json,active,created_at,updated_at FROM products WHERE active=1 ORDER BY id DESC").all();
+                return json({ products: r.results || [] });
+            }
             if (p === "/api/admin/products" && method === "POST") {
                 if (!adminOK(request, env))
                     return json({ error: "Unauthorized" }, 401);
                 const b = await request.json();
                 const slug = slugify(b.slug || b.name);
+                let categoryId = b.categoryId != null ? Number(b.categoryId) : null;
+                if (!categoryId && b.categorySlug) {
+                    const cr = await getDB(env).prepare("SELECT id FROM categories WHERE slug=? AND active=1 LIMIT 1").bind(String(b.categorySlug)).first();
+                    categoryId = cr?.id ? Number(cr.id) : null;
+                }
                 await getDB(env).prepare(`
           INSERT INTO products(category_id,name,slug,description,image_url,price,old_price,wholesale_price,cost_price,stock,max_qty,delivery,care_json)
           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
-        `).bind(b.categoryId || null, b.name, slug, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {})).run();
+        `).bind(categoryId, b.name, slug, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {})).run();
                 return json({ ok: true });
             }
             if (p === "/api/admin/flash-offers" && method === "POST") {
@@ -2041,6 +2045,9 @@ export default {
                 await getDB(env).prepare("INSERT INTO reviews(name,rating,review,active) VALUES(?,?,?,?)")
                     .bind(b.name, Math.min(5, Math.max(1, Number(b.stars) || 5)), b.text || "", Number(b.verified) || 0).run();
                 return json({ ok: true });
+            }
+            if (p === "/admin" || p === "/admin/" || p === "/manage" || p === "/manage/") {
+                return new Response(INDEX_HTML, { headers: { "content-type": "text/html; charset=UTF-8", "cache-control": "no-store" } });
             }
             if (p.startsWith("/api/"))
                 return json({ error: "Not found" }, 404);
