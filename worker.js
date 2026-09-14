@@ -1773,6 +1773,42 @@ export default {
                 .bind(b.name, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {}), id).run();
             return json({ ok: true });
         }
+        // Category management for the standalone Green Moon admin panel.
+        if (p === "/api/admin/categories" && method === "GET") {
+            if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+            const r = await env.DB.prepare("SELECT id,name,slug,icon,image_url,sort_order,active FROM categories ORDER BY sort_order,id").all();
+            return json({ categories: r.results || [] });
+        }
+        if (p === "/api/admin/categories" && method === "POST") {
+            if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+            const b = await request.json();
+            const name = String(b.name || "").trim();
+            if (!name) return json({ error: "اسم الفئة مطلوب" }, 400);
+            const slug = slugify(b.slug || name);
+            const r = await env.DB.prepare("INSERT INTO categories(name,slug,icon,image_url,sort_order,active) VALUES(?,?,?,?,?,1)")
+                .bind(name, slug, String(b.icon || "🌿"), String(b.imageUrl || ""), Number(b.sortOrder) || 0).run();
+            return json({ ok: true, id: r.meta.last_row_id }, 201);
+        }
+        if (p.startsWith("/api/admin/categories/") && (method === "PUT" || method === "DELETE")) {
+            if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+            const id = Number(p.split("/").pop());
+            if (!id) return json({ error: "Invalid category id" }, 400);
+            if (method === "DELETE") {
+                await env.DB.prepare("UPDATE categories SET active=0 WHERE id=?").bind(id).run();
+                return json({ ok: true });
+            }
+            const b = await request.json();
+            const name = String(b.name || "").trim();
+            if (!name) return json({ error: "اسم الفئة مطلوب" }, 400);
+            await env.DB.prepare("UPDATE categories SET name=?,slug=?,icon=?,image_url=?,sort_order=?,active=? WHERE id=?")
+                .bind(name, slugify(b.slug || name), String(b.icon || "🌿"), String(b.imageUrl || ""), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
+            return json({ ok: true });
+        }
+        if (p === "/api/admin/orders" && method === "GET") {
+            if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+            const r = await env.DB.prepare("SELECT id,order_number,customer_name,phone,whatsapp,governorate,area,building,floor,apartment,notes,subtotal,delivery,discount,adjustment,total,status,created_at FROM orders ORDER BY id DESC LIMIT 200").all();
+            return json({ orders: r.results || [] });
+        }
         if (p === "/api/admin/products" && method === "POST") {
             if (!adminOK(request, env))
                 return json({ error: "Unauthorized" }, 401);
