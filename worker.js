@@ -1,4 +1,5 @@
 const PRIVATE_FIELDS = ["wholesale_price", "cost_price"];
+function getDB(env) { return env.DB || env["green-moon-store"]; }
 function json(data, status = 200) {
     return new Response(JSON.stringify(data), {
         status,
@@ -1431,581 +1432,595 @@ const LOGO_B64 = "UklGRpKTAQBXRUJQVlA4WAoAAAAQAAAAgwMAnAIAQUxQSA2nAAABFMhtI0mSKP
 const COVER_B64 = "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";
 export default {
     async fetch(request, env) {
-        const u = new URL(request.url), p = u.pathname, method = request.method;
-        if (method === "OPTIONS") {
-            return new Response(null, { status: 204, headers: {
-                "access-control-allow-origin": "*",
-                "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
-                "access-control-allow-headers": "Content-Type,x-admin-token",
-                "access-control-max-age": "86400"
-            }});
-        }
         try {
-            await env.DB.prepare("ALTER TABLE products ADD COLUMN delivery REAL NOT NULL DEFAULT 0").run();
-        }
-        catch (_) { }
-        try {
-            await env.DB.prepare("CREATE TABLE IF NOT EXISTS flash_claims(id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT NOT NULL UNIQUE, offer_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP)").run();
-        }
-        catch (_) { }
-        try {
-            await env.DB.prepare("CREATE TABLE IF NOT EXISTS scratch_claims(id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT NOT NULL UNIQUE, prize TEXT, value REAL NOT NULL DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP)").run();
-        }
-        catch (_) { }
-        try {
-            await env.DB.prepare("CREATE TABLE IF NOT EXISTS articles(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,excerpt TEXT NOT NULL DEFAULT '',content TEXT NOT NULL DEFAULT '',image_url TEXT NOT NULL DEFAULT '',active INTEGER NOT NULL DEFAULT 1,sort_order INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
-        }
-        catch (_) { }
-        try {
-            await env.DB.prepare("CREATE TABLE IF NOT EXISTS menu_items(id INTEGER PRIMARY KEY AUTOINCREMENT,label TEXT NOT NULL,target TEXT NOT NULL DEFAULT '#home',sort_order INTEGER NOT NULL DEFAULT 0,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
-        }
-        catch (_) { }
-        try {
-            await env.DB.prepare("CREATE TABLE IF NOT EXISTS cms_content(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL DEFAULT '{}',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
-        }
-        catch (_) { }
-        if (p === "/admin" || p === "/admin/" || p === "/" || p === "/index.html")
-            return new Response(INDEX_HTML, { headers: { "content-type": "text/html; charset=utf-8" } });
-        if (p === "/api/health")
-            return json({ ok: true, service: "green-moon" });
-        if (p === "/api/store" && method === "GET") {
-            const settings = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
-            const cmsRow = await env.DB.prepare("SELECT data FROM cms_content WHERE id=1").first();
-            const cats = await env.DB.prepare("SELECT id,name,slug,icon,image_url,sort_order FROM categories WHERE active=1 ORDER BY sort_order,id").all();
-            const ps = await env.DB.prepare("SELECT id,category_id,name,slug,description,image_url,price,old_price,stock,max_qty,delivery,care_json FROM products WHERE active=1 ORDER BY id DESC").all();
-            const offers = await env.DB.prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order FROM flash_offers WHERE active=1 ORDER BY sort_order,id").all();
-            const reviews = await env.DB.prepare("SELECT id,name,review,rating,active,created_at FROM reviews WHERE active=1 ORDER BY id DESC LIMIT 50").all();
-            const articles = await env.DB.prepare("SELECT id,title,excerpt,content,image_url,sort_order,created_at FROM articles WHERE active=1 ORDER BY sort_order,id DESC").all();
-            const menu = await env.DB.prepare("SELECT id,label,target,sort_order FROM menu_items WHERE active=1 ORDER BY sort_order,id").all();
-            return json({
-                settings: (() => {
-                    const z = settings ? JSON.parse(settings.data) : {};
-                    let cms = {};
-                    if (cmsRow?.data) {
-                        try { cms = JSON.parse(cmsRow.data || "{}"); } catch (_) { cms = {}; }
+            const u = new URL(request.url), p = u.pathname, method = request.method;
+            if (p === "/api/health" && method === "GET") {
+                try {
+                    const db = getDB(env);
+                    if (!db) return json({ ok:false, error:"D1 binding missing. Expected DB or green-moon-store." }, 500);
+                    await db.prepare("SELECT 1").first();
+                    return json({ ok:true, db:true });
+                } catch (e) {
+                    return json({ ok:false, error:String(e?.message || e) }, 500);
+                }
+            }
+            if (method === "OPTIONS") {
+                return new Response(null, { status: 204, headers: {
+                    "access-control-allow-origin": "*",
+                    "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
+                    "access-control-allow-headers": "Content-Type,x-admin-token",
+                    "access-control-max-age": "86400"
+                }});
+            }
+            try {
+                await getDB(env).prepare("ALTER TABLE products ADD COLUMN delivery REAL NOT NULL DEFAULT 0").run();
+            }
+            catch (_) { }
+            try {
+                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS flash_claims(id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT NOT NULL UNIQUE, offer_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP)").run();
+            }
+            catch (_) { }
+            try {
+                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS scratch_claims(id INTEGER PRIMARY KEY AUTOINCREMENT, phone TEXT NOT NULL UNIQUE, prize TEXT, value REAL NOT NULL DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP)").run();
+            }
+            catch (_) { }
+            try {
+                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS articles(id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT NOT NULL,excerpt TEXT NOT NULL DEFAULT '',content TEXT NOT NULL DEFAULT '',image_url TEXT NOT NULL DEFAULT '',active INTEGER NOT NULL DEFAULT 1,sort_order INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+            }
+            catch (_) { }
+            try {
+                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS menu_items(id INTEGER PRIMARY KEY AUTOINCREMENT,label TEXT NOT NULL,target TEXT NOT NULL DEFAULT '#home',sort_order INTEGER NOT NULL DEFAULT 0,active INTEGER NOT NULL DEFAULT 1,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+            }
+            catch (_) { }
+            try {
+                await getDB(env).prepare("CREATE TABLE IF NOT EXISTS cms_content(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT NOT NULL DEFAULT '{}',updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)").run();
+            }
+            catch (_) { }
+            if (p === "/admin" || p === "/admin/" || p === "/" || p === "/index.html")
+                return new Response(INDEX_HTML, { headers: { "content-type": "text/html; charset=utf-8" } });
+            if (p === "/api/health")
+                return json({ ok: true, service: "green-moon" });
+            if (p === "/api/store" && method === "GET") {
+                const settings = await getDB(env).prepare("SELECT data FROM settings WHERE id=1").first();
+                const cmsRow = await getDB(env).prepare("SELECT data FROM cms_content WHERE id=1").first();
+                const cats = await getDB(env).prepare("SELECT id,name,slug,icon,image_url,sort_order FROM categories WHERE active=1 ORDER BY sort_order,id").all();
+                const ps = await getDB(env).prepare("SELECT id,category_id,name,slug,description,image_url,price,old_price,stock,max_qty,delivery,care_json FROM products WHERE active=1 ORDER BY id DESC").all();
+                const offers = await getDB(env).prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order FROM flash_offers WHERE active=1 ORDER BY sort_order,id").all();
+                const reviews = await getDB(env).prepare("SELECT id,name,review,rating,active,created_at FROM reviews WHERE active=1 ORDER BY id DESC LIMIT 50").all();
+                const articles = await getDB(env).prepare("SELECT id,title,excerpt,content,image_url,sort_order,created_at FROM articles WHERE active=1 ORDER BY sort_order,id DESC").all();
+                const menu = await getDB(env).prepare("SELECT id,label,target,sort_order FROM menu_items WHERE active=1 ORDER BY sort_order,id").all();
+                return json({
+                    settings: (() => {
+                        const z = settings ? JSON.parse(settings.data) : {};
+                        let cms = {};
+                        if (cmsRow?.data) {
+                            try { cms = JSON.parse(cmsRow.data || "{}"); } catch (_) { cms = {}; }
+                        }
+                        if (!Object.keys(cms).length && z.cms) cms = z.cms;
+                        z.cms = cms;
+                        z.wa = z.wa || "01151054863";
+                        z.msg = z.msg || "شكرًا لاختيارك Green Moon 🌿 يسعدنا تجهيز طلبك.";
+                        z.flashEnabled = z.flashEnabled !== false;
+                        z.flashShowSeconds = Math.max(1, Number(z.flashShowSeconds) || 30);
+                        z.flashGapSeconds = Math.max(1, Number(z.flashGapSeconds) || 60);
+                        z.flashStartSeconds = Math.max(0, Number(z.flashStartSeconds) || 20);
+                        z.scratchEnabled = z.scratchEnabled !== false;
+                        z.scratchPercent = Math.max(0, Math.min(100, Number(z.scratchPercent) || 25));
+                        return z;
+                    })(),
+                    categories: cats.results,
+                    products: ps.results,
+                    offers: offers.results,
+                    reviews: reviews.results,
+                    articles: articles.results,
+                    menu: menu.results
+                });
+            }
+            if (p === "/api/orders" && method === "POST") {
+                try {
+                    const b = await request.json();
+                    if (!b.customer?.name || !b.customer?.phone || !Array.isArray(b.items) || !b.items.length)
+                        return json({ error: "بيانات الطلب غير مكتملة" }, 400);
+                    const ids = b.items.map((x) => Number(x.productId)).filter(Boolean);
+                    const names = b.items.map((x) => String(x.productName || '').trim()).filter(Boolean);
+                    const clauses = [];
+                    const binds = [];
+                    if (ids.length) {
+                        clauses.push(`id IN (${ids.map(() => "?").join(",")})`);
+                        binds.push(...ids);
                     }
-                    if (!Object.keys(cms).length && z.cms) cms = z.cms;
-                    z.cms = cms;
-                    z.wa = z.wa || "01151054863";
-                    z.msg = z.msg || "شكرًا لاختيارك Green Moon 🌿 يسعدنا تجهيز طلبك.";
-                    z.flashEnabled = z.flashEnabled !== false;
-                    z.flashShowSeconds = Math.max(1, Number(z.flashShowSeconds) || 30);
-                    z.flashGapSeconds = Math.max(1, Number(z.flashGapSeconds) || 60);
-                    z.flashStartSeconds = Math.max(0, Number(z.flashStartSeconds) || 20);
-                    z.scratchEnabled = z.scratchEnabled !== false;
-                    z.scratchPercent = Math.max(0, Math.min(100, Number(z.scratchPercent) || 25));
-                    return z;
-                })(),
-                categories: cats.results,
-                products: ps.results,
-                offers: offers.results,
-                reviews: reviews.results,
-                articles: articles.results,
-                menu: menu.results
-            });
-        }
-        if (p === "/api/orders" && method === "POST") {
-            try {
-                const b = await request.json();
-                if (!b.customer?.name || !b.customer?.phone || !Array.isArray(b.items) || !b.items.length)
-                    return json({ error: "بيانات الطلب غير مكتملة" }, 400);
-                const ids = b.items.map((x) => Number(x.productId)).filter(Boolean);
-                const names = b.items.map((x) => String(x.productName || '').trim()).filter(Boolean);
-                const clauses = [];
-                const binds = [];
-                if (ids.length) {
-                    clauses.push(`id IN (${ids.map(() => "?").join(",")})`);
-                    binds.push(...ids);
+                    if (names.length) {
+                        clauses.push(`name IN (${names.map(() => "?").join(",")})`);
+                        binds.push(...names);
+                    }
+                    if (!clauses.length)
+                        return json({ error: "لم يتم إرسال منتجات في الطلب" }, 400);
+                    const rows = await getDB(env).prepare(`SELECT id,name,price,wholesale_price,stock,max_qty,delivery FROM products WHERE active=1 AND (${clauses.join(' OR ')})`).bind(...binds).all();
+                    const byId = new Map(rows.results.map((x) => [Number(x.id), x]));
+                    const byName = new Map(rows.results.map((x) => [String(x.name).trim(), x]));
+                    let subtotal = 0;
+                    const safe = [];
+                    for (const item of b.items) {
+                        const pr = byId.get(Number(item.productId)) || byName.get(String(item.productName || '').trim());
+                        if (!pr)
+                            return json({ error: `المنتج غير موجود في قاعدة البيانات: ${item.productName || item.productId}` }, 409);
+                        const qty = Math.max(1, Math.min(Number(item.qty) || 1, Number(pr.max_qty) || 99));
+                        if (Number(pr.stock) < qty)
+                            return json({ error: `المخزون غير كافٍ: ${pr.name}` }, 409);
+                        // Smart add-on price is always recomputed on the server: wholesale + exactly 50 EGP.
+                        // Never trust a price sent by the browser.
+                        // Smart add-on is optional. If a product has no wholesale price configured,
+                        // do not block a normal customer order; silently fall back to the regular retail price.
+                        const requestedSmart = !!item.smartOffer;
+                        const smart = requestedSmart && Number(pr.wholesale_price || 0) > 0;
+                        const unitPrice = smart ? Math.max(1, Number(pr.wholesale_price || 0) + 50) : Number(pr.price) || 0;
+                        if (unitPrice <= 0)
+                            return json({ error: `سعر المنتج غير صالح: ${pr.name}` }, 409);
+                        subtotal += unitPrice * qty;
+                        safe.push({ pr, qty, unitPrice, smart });
+                    }
+                    const delivery = safe.reduce((sum, x) => sum + Number(x.pr.delivery || 0) * x.qty, 0);
+                    const discount = Math.max(0, Number(b.discount) || 0);
+                    const adjustment = Number(b.adjustment) || 0;
+                    const total = Math.max(0, subtotal + delivery - discount + adjustment);
+                    const number = "GM-" + Date.now().toString(36).toUpperCase();
+                    const inserted = await getDB(env).prepare(`
+            INSERT INTO orders(order_number,customer_name,phone,whatsapp,governorate,area,building,floor,apartment,notes,subtotal,delivery,discount,adjustment,total,status)
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+          `).bind(number, b.customer.name, b.customer.phone, b.customer.whatsapp || "", b.customer.governorate || "", b.customer.area || "", b.customer.building || "", b.customer.floor || "", b.customer.apartment || "", b.customer.notes || "", subtotal, delivery, discount, adjustment, total, "new").run();
+                    let orderId = Number(inserted?.meta?.last_row_id || 0);
+                    if (!orderId) {
+                        const order = await getDB(env).prepare("SELECT id FROM orders WHERE order_number=?").bind(number).first();
+                        orderId = Number(order?.id || 0);
+                    }
+                    if (!orderId)
+                        throw new Error("تم إنشاء الطلب لكن تعذر الحصول على رقم السجل");
+                    const statements = [];
+                    for (const x of safe) {
+                        statements.push(getDB(env).prepare("INSERT INTO order_items(order_id,product_id,name,qty,unit_price) VALUES(?,?,?,?,?)")
+                            .bind(orderId, x.pr.id, x.pr.name, x.qty, x.unitPrice));
+                        statements.push(getDB(env).prepare("UPDATE products SET stock=stock-?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+                            .bind(x.qty, x.pr.id));
+                    }
+                    if (statements.length)
+                        await getDB(env).batch(statements);
+                    const rewardProductId = Number(b.rewardProductId) || 0;
+                    if (rewardProductId) {
+                        const phone = String(b.customer?.phone || "").replace(/\D/g, "");
+                        const claimed = await getDB(env).prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
+                        if (!claimed)
+                            return json({ error: "تعذر التحقق من جائزة كارت الخدش" }, 409);
+                        const gift = await getDB(env).prepare("SELECT id,stock FROM products WHERE id=? AND active=1").bind(rewardProductId).first();
+                        if (!gift || Number(gift.stock) <= 0)
+                            return json({ error: "الهدية لم تعد متاحة" }, 409);
+                        await getDB(env).prepare("UPDATE products SET stock=stock-1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND stock>0").bind(rewardProductId).run();
+                    }
+                    const verified = await getDB(env).prepare("SELECT id,order_number,total FROM orders WHERE id=?").bind(orderId).first();
+                    if (!verified)
+                        throw new Error("تعذر التحقق من تسجيل الطلب داخل قاعدة البيانات");
+                    return json({ ok: true, orderNumber: verified.order_number, total: Number(verified.total) });
                 }
-                if (names.length) {
-                    clauses.push(`name IN (${names.map(() => "?").join(",")})`);
-                    binds.push(...names);
+                catch (e) {
+                    console.error("ORDER_CREATE_FAILED", e);
+                    return json({ error: `فشل تسجيل الطلب: ${String(e?.message || e || "خطأ غير معروف")}` }, 500);
                 }
-                if (!clauses.length)
-                    return json({ error: "لم يتم إرسال منتجات في الطلب" }, 400);
-                const rows = await env.DB.prepare(`SELECT id,name,price,wholesale_price,stock,max_qty,delivery FROM products WHERE active=1 AND (${clauses.join(' OR ')})`).bind(...binds).all();
-                const byId = new Map(rows.results.map((x) => [Number(x.id), x]));
-                const byName = new Map(rows.results.map((x) => [String(x.name).trim(), x]));
-                let subtotal = 0;
-                const safe = [];
-                for (const item of b.items) {
-                    const pr = byId.get(Number(item.productId)) || byName.get(String(item.productName || '').trim());
-                    if (!pr)
-                        return json({ error: `المنتج غير موجود في قاعدة البيانات: ${item.productName || item.productId}` }, 409);
-                    const qty = Math.max(1, Math.min(Number(item.qty) || 1, Number(pr.max_qty) || 99));
-                    if (Number(pr.stock) < qty)
-                        return json({ error: `المخزون غير كافٍ: ${pr.name}` }, 409);
-                    // Smart add-on price is always recomputed on the server: wholesale + exactly 50 EGP.
-                    // Never trust a price sent by the browser.
-                    // Smart add-on is optional. If a product has no wholesale price configured,
-                    // do not block a normal customer order; silently fall back to the regular retail price.
-                    const requestedSmart = !!item.smartOffer;
-                    const smart = requestedSmart && Number(pr.wholesale_price || 0) > 0;
-                    const unitPrice = smart ? Math.max(1, Number(pr.wholesale_price || 0) + 50) : Number(pr.price) || 0;
-                    if (unitPrice <= 0)
-                        return json({ error: `سعر المنتج غير صالح: ${pr.name}` }, 409);
-                    subtotal += unitPrice * qty;
-                    safe.push({ pr, qty, unitPrice, smart });
-                }
-                const delivery = safe.reduce((sum, x) => sum + Number(x.pr.delivery || 0) * x.qty, 0);
-                const discount = Math.max(0, Number(b.discount) || 0);
-                const adjustment = Number(b.adjustment) || 0;
-                const total = Math.max(0, subtotal + delivery - discount + adjustment);
-                const number = "GM-" + Date.now().toString(36).toUpperCase();
-                const inserted = await env.DB.prepare(`
-        INSERT INTO orders(order_number,customer_name,phone,whatsapp,governorate,area,building,floor,apartment,notes,subtotal,delivery,discount,adjustment,total,status)
-        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-      `).bind(number, b.customer.name, b.customer.phone, b.customer.whatsapp || "", b.customer.governorate || "", b.customer.area || "", b.customer.building || "", b.customer.floor || "", b.customer.apartment || "", b.customer.notes || "", subtotal, delivery, discount, adjustment, total, "new").run();
-                let orderId = Number(inserted?.meta?.last_row_id || 0);
-                if (!orderId) {
-                    const order = await env.DB.prepare("SELECT id FROM orders WHERE order_number=?").bind(number).first();
-                    orderId = Number(order?.id || 0);
-                }
-                if (!orderId)
-                    throw new Error("تم إنشاء الطلب لكن تعذر الحصول على رقم السجل");
-                const statements = [];
-                for (const x of safe) {
-                    statements.push(env.DB.prepare("INSERT INTO order_items(order_id,product_id,name,qty,unit_price) VALUES(?,?,?,?,?)")
-                        .bind(orderId, x.pr.id, x.pr.name, x.qty, x.unitPrice));
-                    statements.push(env.DB.prepare("UPDATE products SET stock=stock-?,updated_at=CURRENT_TIMESTAMP WHERE id=?")
-                        .bind(x.qty, x.pr.id));
-                }
-                if (statements.length)
-                    await env.DB.batch(statements);
-                const rewardProductId = Number(b.rewardProductId) || 0;
-                if (rewardProductId) {
-                    const phone = String(b.customer?.phone || "").replace(/\D/g, "");
-                    const claimed = await env.DB.prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
-                    if (!claimed)
-                        return json({ error: "تعذر التحقق من جائزة كارت الخدش" }, 409);
-                    const gift = await env.DB.prepare("SELECT id,stock FROM products WHERE id=? AND active=1").bind(rewardProductId).first();
-                    if (!gift || Number(gift.stock) <= 0)
-                        return json({ error: "الهدية لم تعد متاحة" }, 409);
-                    await env.DB.prepare("UPDATE products SET stock=stock-1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND stock>0").bind(rewardProductId).run();
-                }
-                const verified = await env.DB.prepare("SELECT id,order_number,total FROM orders WHERE id=?").bind(orderId).first();
-                if (!verified)
-                    throw new Error("تعذر التحقق من تسجيل الطلب داخل قاعدة البيانات");
-                return json({ ok: true, orderNumber: verified.order_number, total: Number(verified.total) });
             }
-            catch (e) {
-                console.error("ORDER_CREATE_FAILED", e);
-                return json({ error: `فشل تسجيل الطلب: ${String(e?.message || e || "خطأ غير معروف")}` }, 500);
-            }
-        }
-        if ((p === "/api/doctor" || p === "/api/ai/plant-doctor" || p === "/api/ai/space") && method === "POST") {
-            try {
-                const b = await request.json();
-                if (!b.image) return json({ success: false, error: "الصورة مطلوبة" }, 400);
-                const mode = p === "/api/ai/space" ? "space" : (p === "/api/doctor" ? (b.mode === "space" ? "space" : "plant") : "plant");
-                if (mode === "space") {
-                    const products = await env.DB.prepare("SELECT id,name,description,price,image_url,care_json FROM products WHERE active=1").all();
-                    const prompt = `أنت مساعد متخصص في نباتات الزينة المنزلية لصالح Green Moon في مصر. حلل صورة المكان فقط بما يمكن ملاحظته بصريًا. لا تخمّن قياسات دقيقة أو شدة إضاءة غير ظاهرة. اقترح فقط من قائمة المنتجات المتاحة أدناه. لا تخترع منتجًا أو معلومة.
-أعد JSON فقط بالشكل:
-{"summary":"","lighting":"","space_type":"","recommendations":[{"product_id":0,"product_name":"","reason":"","placement":"","match":0}],"avoid":[],"follow_up_questions":[]}
-اجعل match تقديرًا تقريبيًا 0-100 وليس ضمانًا. لو الصورة غير كافية قل ذلك بوضوح في summary وأضف سؤالًا مناسبًا في follow_up_questions.
-ملاحظات العميل: ${String(b.note || "").slice(0,1000)}
-المنتجات: ${JSON.stringify((products.results || []).map(x => ({id:x.id,name:x.name,description:x.description,price:x.price})))}`;
+            if ((p === "/api/doctor" || p === "/api/ai/plant-doctor" || p === "/api/ai/space") && method === "POST") {
+                try {
+                    const b = await request.json();
+                    if (!b.image) return json({ success: false, error: "الصورة مطلوبة" }, 400);
+                    const mode = p === "/api/ai/space" ? "space" : (p === "/api/doctor" ? (b.mode === "space" ? "space" : "plant") : "plant");
+                    if (mode === "space") {
+                        const products = await getDB(env).prepare("SELECT id,name,description,price,image_url,care_json FROM products WHERE active=1").all();
+                        const prompt = `أنت مساعد متخصص في نباتات الزينة المنزلية لصالح Green Moon في مصر. حلل صورة المكان فقط بما يمكن ملاحظته بصريًا. لا تخمّن قياسات دقيقة أو شدة إضاءة غير ظاهرة. اقترح فقط من قائمة المنتجات المتاحة أدناه. لا تخترع منتجًا أو معلومة.
+    أعد JSON فقط بالشكل:
+    {"summary":"","lighting":"","space_type":"","recommendations":[{"product_id":0,"product_name":"","reason":"","placement":"","match":0}],"avoid":[],"follow_up_questions":[]}
+    اجعل match تقديرًا تقريبيًا 0-100 وليس ضمانًا. لو الصورة غير كافية قل ذلك بوضوح في summary وأضف سؤالًا مناسبًا في follow_up_questions.
+    ملاحظات العميل: ${String(b.note || "").slice(0,1000)}
+    المنتجات: ${JSON.stringify((products.results || []).map(x => ({id:x.id,name:x.name,description:x.description,price:x.price})))}`;
+                        const answer = await openAI(env, prompt, b.image);
+                        if (!answer) return json({ success: false, error: "خدمة التحليل غير مفعلة. يجب ضبط OPENAI_API_KEY كـSecret." }, 503);
+                        return json({ success: true, ok: true, result: answer });
+                    }
+                    const prompt = `أنت مساعد متخصص في تشخيص مشاكل نباتات الزينة المنزلية. مهمتك تقديم إرشاد عملي آمن وغير مضلل بناءً على الصورة والملاحظة فقط.
+    قواعد إلزامية:
+    - لا تدّعِ أن التشخيص مؤكد 100% من صورة واحدة.
+    - إذا لم تكن الصورة كافية، اكتب plant_name="غير واضح" وcondition="غير واضحة" وconfidence<=40، واطلب صورًا/معلومات إضافية.
+    - لا تخترع أعراضًا أو آفات أو أمراضًا غير ظاهرة.
+    - فرّق بين ما تراه فعلًا وما هو سبب محتمل.
+    - لا توصي بمبيدات أو جرعات كيميائية محددة إلا إذا كان تحديد المشكلة واضحًا جدًا؛ والأفضل توجيه العميل لمنتج مسجل واتباع الملصق.
+    - أعطِ خطوات بسيطة قليلة المخاطر يمكن للعميل تنفيذها الآن.
+    - إذا كانت هناك علامات خطورة شديدة (تعفن متقدم، انتشار سريع، حشرات كثيفة، انهيار شديد) وضّح أن الفحص المباشر أفضل.
+    - استخدم لغة مصرية بسيطة وواضحة، بدون تخويف أو مصطلحات مربكة.
+    أعد JSON فقط بهذا الشكل:
+    {"plant_name":"","condition":"","confidence":0,"what_i_see":[],"symptoms":[],"likely_causes":[],"treatment_now":[],"watering":"","light":"","fertilizer":"","warnings":[],"follow_up_questions":[]}
+    اجعل confidence تقديرًا تقريبيًا لجودة مطابقة الصورة، وليس نسبة يقين علمي.
+    ملاحظة العميل: ${String(b.note || "").slice(0,1000)}`;
                     const answer = await openAI(env, prompt, b.image);
                     if (!answer) return json({ success: false, error: "خدمة التحليل غير مفعلة. يجب ضبط OPENAI_API_KEY كـSecret." }, 503);
                     return json({ success: true, ok: true, result: answer });
+                } catch (e) {
+                    return json({ success: false, error: String(e?.message || e || "تعذر تحليل الصورة") }, 500);
                 }
-                const prompt = `أنت مساعد متخصص في تشخيص مشاكل نباتات الزينة المنزلية. مهمتك تقديم إرشاد عملي آمن وغير مضلل بناءً على الصورة والملاحظة فقط.
-قواعد إلزامية:
-- لا تدّعِ أن التشخيص مؤكد 100% من صورة واحدة.
-- إذا لم تكن الصورة كافية، اكتب plant_name="غير واضح" وcondition="غير واضحة" وconfidence<=40، واطلب صورًا/معلومات إضافية.
-- لا تخترع أعراضًا أو آفات أو أمراضًا غير ظاهرة.
-- فرّق بين ما تراه فعلًا وما هو سبب محتمل.
-- لا توصي بمبيدات أو جرعات كيميائية محددة إلا إذا كان تحديد المشكلة واضحًا جدًا؛ والأفضل توجيه العميل لمنتج مسجل واتباع الملصق.
-- أعطِ خطوات بسيطة قليلة المخاطر يمكن للعميل تنفيذها الآن.
-- إذا كانت هناك علامات خطورة شديدة (تعفن متقدم، انتشار سريع، حشرات كثيفة، انهيار شديد) وضّح أن الفحص المباشر أفضل.
-- استخدم لغة مصرية بسيطة وواضحة، بدون تخويف أو مصطلحات مربكة.
-أعد JSON فقط بهذا الشكل:
-{"plant_name":"","condition":"","confidence":0,"what_i_see":[],"symptoms":[],"likely_causes":[],"treatment_now":[],"watering":"","light":"","fertilizer":"","warnings":[],"follow_up_questions":[]}
-اجعل confidence تقديرًا تقريبيًا لجودة مطابقة الصورة، وليس نسبة يقين علمي.
-ملاحظة العميل: ${String(b.note || "").slice(0,1000)}`;
-                const answer = await openAI(env, prompt, b.image);
-                if (!answer) return json({ success: false, error: "خدمة التحليل غير مفعلة. يجب ضبط OPENAI_API_KEY كـSecret." }, 503);
-                return json({ success: true, ok: true, result: answer });
-            } catch (e) {
-                return json({ success: false, error: String(e?.message || e || "تعذر تحليل الصورة") }, 500);
             }
-        }
-        if (p === "/api/admin/magazine-music" && method === "PUT") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            const current = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
-            const settings = current ? JSON.parse(current.data) : {};
-            settings.magazineMusic = {
-                enabled: b.enabled !== false,
-                url: String(b.url || ""),
-                volume: Math.max(0, Math.min(1, Number(b.volume) || 0.35)),
-                autoplay: b.autoplay !== false,
-                loop: b.loop !== false
-            };
-            await env.DB.prepare(`
-      INSERT INTO settings(id,data) VALUES(1,?)
-      ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP
-    `).bind(JSON.stringify(settings)).run();
-            return json({ ok: true, magazineMusic: settings.magazineMusic });
-        }
-        if (p === "/api/admin/overview" && method === "GET") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const a = await env.DB.prepare("SELECT COUNT(*) orders,COALESCE(SUM(total),0) sales FROM orders").first();
-            const b = await env.DB.prepare("SELECT COUNT(*) low FROM products WHERE active=1 AND stock<=5").first();
-            return json({ orders: a?.orders || 0, sales: a?.sales || 0, lowStock: b?.low || 0 });
-        }
-        if (p === "/api/admin/cms" && method === "GET") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const cmsRow = await env.DB.prepare("SELECT data FROM cms_content WHERE id=1").first();
-            let c = {};
-            if (cmsRow?.data) {
-                try { c = JSON.parse(cmsRow.data || "{}"); } catch (_) { c = {}; }
+            if (p === "/api/admin/magazine-music" && method === "PUT") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                const current = await getDB(env).prepare("SELECT data FROM settings WHERE id=1").first();
+                const settings = current ? JSON.parse(current.data) : {};
+                settings.magazineMusic = {
+                    enabled: b.enabled !== false,
+                    url: String(b.url || ""),
+                    volume: Math.max(0, Math.min(1, Number(b.volume) || 0.35)),
+                    autoplay: b.autoplay !== false,
+                    loop: b.loop !== false
+                };
+                await getDB(env).prepare(`
+          INSERT INTO settings(id,data) VALUES(1,?)
+          ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP
+        `).bind(JSON.stringify(settings)).run();
+                return json({ ok: true, magazineMusic: settings.magazineMusic });
             }
-            if (!Object.keys(c).length) {
-                const row = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
-                const all = row ? JSON.parse(row.data || "{}") : {};
-                c = all.cms || {};
+            if (p === "/api/admin/overview" && method === "GET") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const a = await getDB(env).prepare("SELECT COUNT(*) orders,COALESCE(SUM(total),0) sales FROM orders").first();
+                const b = await getDB(env).prepare("SELECT COUNT(*) low FROM products WHERE active=1 AND stock<=5").first();
+                return json({ orders: a?.orders || 0, sales: a?.sales || 0, lowStock: b?.low || 0 });
             }
-            const ar = await env.DB.prepare("SELECT id,title,excerpt,content,image_url,sort_order,active FROM articles ORDER BY sort_order,id DESC").all();
-            return json({ content: c, articles: ar.results || [] });
-        }
-        if (p === "/api/admin/cms/content" && method === "PUT") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const body = await request.json();
-            const safeBody = body && typeof body === "object" ? body : {};
-            await env.DB.prepare(`INSERT INTO cms_content(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP`).bind(JSON.stringify(safeBody)).run();
+            if (p === "/api/admin/cms" && method === "GET") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const cmsRow = await getDB(env).prepare("SELECT data FROM cms_content WHERE id=1").first();
+                let c = {};
+                if (cmsRow?.data) {
+                    try { c = JSON.parse(cmsRow.data || "{}"); } catch (_) { c = {}; }
+                }
+                if (!Object.keys(c).length) {
+                    const row = await getDB(env).prepare("SELECT data FROM settings WHERE id=1").first();
+                    const all = row ? JSON.parse(row.data || "{}") : {};
+                    c = all.cms || {};
+                }
+                const ar = await getDB(env).prepare("SELECT id,title,excerpt,content,image_url,sort_order,active FROM articles ORDER BY sort_order,id DESC").all();
+                return json({ content: c, articles: ar.results || [] });
+            }
+            if (p === "/api/admin/cms/content" && method === "PUT") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const body = await request.json();
+                const safeBody = body && typeof body === "object" ? body : {};
+                await getDB(env).prepare(`INSERT INTO cms_content(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP`).bind(JSON.stringify(safeBody)).run();
 
-            // Keep legacy settings.cms synchronized for compatibility, but never replace the rest of settings.
-            const row = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
-            let all = {};
-            if (row?.data) {
-                try { all = JSON.parse(row.data || "{}"); } catch (_) { all = {}; }
+                // Keep legacy settings.cms synchronized for compatibility, but never replace the rest of settings.
+                const row = await getDB(env).prepare("SELECT data FROM settings WHERE id=1").first();
+                let all = {};
+                if (row?.data) {
+                    try { all = JSON.parse(row.data || "{}"); } catch (_) { all = {}; }
+                }
+                all.cms = safeBody;
+                await getDB(env).prepare(`INSERT INTO settings(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP`).bind(JSON.stringify(all)).run();
+                return json({ ok: true, content: safeBody });
             }
-            all.cms = safeBody;
-            await env.DB.prepare(`INSERT INTO settings(id,data) VALUES(1,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP`).bind(JSON.stringify(all)).run();
-            return json({ ok: true, content: safeBody });
-        }
-        if (p === "/api/admin/articles" && method === "POST") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            if (!String(b.title || "").trim())
-                return json({ error: "عنوان المقال مطلوب" }, 400);
-            const r = await env.DB.prepare("INSERT INTO articles(title,excerpt,content,image_url,sort_order,active) VALUES(?,?,?,?,?,1)").bind(String(b.title).trim(), String(b.excerpt || ""), String(b.content || ""), String(b.imageUrl || ""), Number(b.sortOrder) || 0).run();
-            return json({ ok: true, id: r.meta.last_row_id }, 201);
-        }
-        if (p.startsWith("/api/admin/articles/") && (method === "PUT" || method === "DELETE")) {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const id = Number(p.split("/").pop());
-            if (!id)
-                return json({ error: "Invalid article id" }, 400);
-            if (method === "DELETE") {
-                await env.DB.prepare("UPDATE articles SET active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+            if (p === "/api/admin/articles" && method === "POST") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                if (!String(b.title || "").trim())
+                    return json({ error: "عنوان المقال مطلوب" }, 400);
+                const r = await getDB(env).prepare("INSERT INTO articles(title,excerpt,content,image_url,sort_order,active) VALUES(?,?,?,?,?,1)").bind(String(b.title).trim(), String(b.excerpt || ""), String(b.content || ""), String(b.imageUrl || ""), Number(b.sortOrder) || 0).run();
+                return json({ ok: true, id: r.meta.last_row_id }, 201);
+            }
+            if (p.startsWith("/api/admin/articles/") && (method === "PUT" || method === "DELETE")) {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const id = Number(p.split("/").pop());
+                if (!id)
+                    return json({ error: "Invalid article id" }, 400);
+                if (method === "DELETE") {
+                    await getDB(env).prepare("UPDATE articles SET active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+                    return json({ ok: true });
+                }
+                const b = await request.json();
+                await getDB(env).prepare("UPDATE articles SET title=?,excerpt=?,content=?,image_url=?,sort_order=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(String(b.title || "مقال"), String(b.excerpt || ""), String(b.content || ""), String(b.imageUrl || ""), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
                 return json({ ok: true });
             }
-            const b = await request.json();
-            await env.DB.prepare("UPDATE articles SET title=?,excerpt=?,content=?,image_url=?,sort_order=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(String(b.title || "مقال"), String(b.excerpt || ""), String(b.content || ""), String(b.imageUrl || ""), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
-            return json({ ok: true });
-        }
-        if (p === "/api/admin/menu" && method === "GET") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const r = await env.DB.prepare("SELECT id,label,target,sort_order,active FROM menu_items ORDER BY sort_order,id").all();
-            return json({ items: r.results || [] });
-        }
-        if (p === "/api/admin/menu" && method === "POST") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            const label = String(b.label || "").trim();
-            const target = String(b.target || "#products").trim();
-            if (!label) return json({ error: "اسم الزر مطلوب" }, 400);
-            const r = await env.DB.prepare("INSERT INTO menu_items(label,target,sort_order,active) VALUES(?,?,?,?)").bind(label,target,Number(b.sortOrder)||0,b.active===false?0:1).run();
-            return json({ ok:true,id:r.meta.last_row_id },201);
-        }
-        if (p.startsWith("/api/admin/menu/") && (method === "PUT" || method === "DELETE")) {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const id = Number(p.split("/").pop());
-            if (!id) return json({ error: "Invalid menu id" }, 400);
-            if (method === "DELETE") {
-                await env.DB.prepare("UPDATE menu_items SET active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+            if (p === "/api/admin/menu" && method === "GET") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const r = await getDB(env).prepare("SELECT id,label,target,sort_order,active FROM menu_items ORDER BY sort_order,id").all();
+                return json({ items: r.results || [] });
+            }
+            if (p === "/api/admin/menu" && method === "POST") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                const label = String(b.label || "").trim();
+                const target = String(b.target || "#products").trim();
+                if (!label) return json({ error: "اسم الزر مطلوب" }, 400);
+                const r = await getDB(env).prepare("INSERT INTO menu_items(label,target,sort_order,active) VALUES(?,?,?,?)").bind(label,target,Number(b.sortOrder)||0,b.active===false?0:1).run();
+                return json({ ok:true,id:r.meta.last_row_id },201);
+            }
+            if (p.startsWith("/api/admin/menu/") && (method === "PUT" || method === "DELETE")) {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const id = Number(p.split("/").pop());
+                if (!id) return json({ error: "Invalid menu id" }, 400);
+                if (method === "DELETE") {
+                    await getDB(env).prepare("UPDATE menu_items SET active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+                    return json({ ok:true });
+                }
+                const b = await request.json();
+                await getDB(env).prepare("UPDATE menu_items SET label=?,target=?,sort_order=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(String(b.label||"زر"),String(b.target||"#products"),Number(b.sortOrder)||0,b.active===false?0:1,id).run();
                 return json({ ok:true });
             }
-            const b = await request.json();
-            await env.DB.prepare("UPDATE menu_items SET label=?,target=?,sort_order=?,active=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(String(b.label||"زر"),String(b.target||"#products"),Number(b.sortOrder)||0,b.active===false?0:1,id).run();
-            return json({ ok:true });
-        }
-        if (p === "/api/admin/settings" && method === "PUT") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const body = await request.json();
-            const row = await env.DB.prepare("SELECT data FROM settings WHERE id=1").first();
-            let current = {};
-            if (row?.data) {
-                try { current = JSON.parse(row.data || "{}"); } catch (_) { current = {}; }
-            }
-            const merged = { ...current, ...(body && typeof body === "object" ? body : {}) };
-            await env.DB.prepare(`
-      INSERT INTO settings(id,data) VALUES(1,?)
-      ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP
-    `).bind(JSON.stringify(merged)).run();
-            return json({ ok: true, settings: merged });
-        }
-        if (p.startsWith("/api/admin/products/") && (method === "PUT" || method === "DELETE")) {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const id = Number(p.split("/").pop());
-            if (!id)
-                return json({ error: "Invalid product id" }, 400);
-            if (method === "DELETE") {
-                await env.DB.prepare("UPDATE products SET active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
-                return json({ ok: true });
-            }
-            const b = await request.json();
-            await env.DB.prepare(`UPDATE products SET name=?,description=?,image_url=?,price=?,old_price=?,wholesale_price=?,cost_price=?,stock=?,max_qty=?,delivery=?,care_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
-                .bind(b.name, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {}), id).run();
-            return json({ ok: true });
-        }
-        // Category management for the standalone Green Moon admin panel.
-        if (p === "/api/admin/categories" && method === "GET") {
-            if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
-            const r = await env.DB.prepare("SELECT id,name,slug,icon,image_url,sort_order,active FROM categories ORDER BY sort_order,id").all();
-            return json({ categories: r.results || [] });
-        }
-        if (p === "/api/admin/categories" && method === "POST") {
-            if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            const name = String(b.name || "").trim();
-            if (!name) return json({ error: "اسم الفئة مطلوب" }, 400);
-            const slug = slugify(b.slug || name);
-            const r = await env.DB.prepare("INSERT INTO categories(name,slug,icon,image_url,sort_order,active) VALUES(?,?,?,?,?,1)")
-                .bind(name, slug, String(b.icon || "🌿"), String(b.imageUrl || ""), Number(b.sortOrder) || 0).run();
-            return json({ ok: true, id: r.meta.last_row_id }, 201);
-        }
-        if (p.startsWith("/api/admin/categories/") && (method === "PUT" || method === "DELETE")) {
-            if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
-            const id = Number(p.split("/").pop());
-            if (!id) return json({ error: "Invalid category id" }, 400);
-            if (method === "DELETE") {
-                await env.DB.prepare("UPDATE categories SET active=0 WHERE id=?").bind(id).run();
-                return json({ ok: true });
-            }
-            const b = await request.json();
-            const name = String(b.name || "").trim();
-            if (!name) return json({ error: "اسم الفئة مطلوب" }, 400);
-            await env.DB.prepare("UPDATE categories SET name=?,slug=?,icon=?,image_url=?,sort_order=?,active=? WHERE id=?")
-                .bind(name, slugify(b.slug || name), String(b.icon || "🌿"), String(b.imageUrl || ""), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
-            return json({ ok: true });
-        }
-        if (p === "/api/admin/orders" && method === "GET") {
-            if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
-            const r = await env.DB.prepare("SELECT id,order_number,customer_name,phone,whatsapp,governorate,area,building,floor,apartment,notes,subtotal,delivery,discount,adjustment,total,status,created_at FROM orders ORDER BY id DESC LIMIT 200").all();
-            return json({ orders: r.results || [] });
-        }
-        if (p === "/api/admin/products" && method === "POST") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            const slug = slugify(b.slug || b.name);
-            await env.DB.prepare(`
-      INSERT INTO products(category_id,name,slug,description,image_url,price,old_price,wholesale_price,cost_price,stock,max_qty,delivery,care_json)
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `).bind(b.categoryId || null, b.name, slug, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {})).run();
-            return json({ ok: true });
-        }
-        if (p === "/api/admin/flash-offers" && method === "POST") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            await env.DB.prepare(`
-      INSERT INTO flash_offers(title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order)
-      VALUES(?,?,?,?,?,?,?,?,?)
-    `).bind(b.title, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.stock) || 0, Number(b.showSeconds) || 15, Number(b.gapSeconds) || 60, Number(b.sortOrder) || 0).run();
-            return json({ ok: true });
-        }
-        if (p === "/api/flash-offers" && method === "GET") {
-            const rows = await env.DB.prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order FROM flash_offers WHERE active=1 ORDER BY sort_order,id").all();
-            return json({ offers: rows.results });
-        }
-        if (p === "/api/admin/flash-offers" && method === "GET") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const rows = await env.DB.prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order,active FROM flash_offers ORDER BY sort_order,id").all();
-            return json({ offers: rows.results });
-        }
-        if (p.startsWith("/api/admin/flash-offers/") && (method === "PUT" || method === "DELETE")) {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const id = Number(p.split("/").pop());
-            if (!id)
-                return json({ error: "Invalid offer id" }, 400);
-            if (method === "DELETE") {
-                await env.DB.prepare("UPDATE flash_offers SET active=0 WHERE id=?").bind(id).run();
-                return json({ ok: true });
-            }
-            const b = await request.json();
-            await env.DB.prepare("UPDATE flash_offers SET title=?,description=?,image_url=?,price=?,old_price=?,show_seconds=?,gap_seconds=?,sort_order=?,active=? WHERE id=?").bind(String(b.title || "عرض Green Moon"), String(b.description || ""), String(b.imageUrl || ""), Math.max(0, Number(b.price) || 0), Math.max(0, Number(b.oldPrice) || 0), Math.max(1, Number(b.showSeconds) || 30), Math.max(1, Number(b.gapSeconds) || 60), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
-            return json({ ok: true });
-        }
-        if (p === "/api/admin/flash-offers" && method === "POST") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            if (!String(b.title || "").trim())
-                return json({ error: "عنوان العرض مطلوب" }, 400);
-            await env.DB.prepare("INSERT INTO flash_offers(title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order,active) VALUES(?,?,?,?,?,?,?,?,?,1)").bind(String(b.title).trim(), String(b.description || ""), String(b.imageUrl || ""), Math.max(0, Number(b.price) || 0), Math.max(0, Number(b.oldPrice) || 0), Math.max(0, Number(b.stock) || 0), Math.max(1, Number(b.showSeconds) || 30), Math.max(1, Number(b.gapSeconds) || 60), Number(b.sortOrder) || 0).run();
-            return json({ ok: true });
-        }
-        if (p === "/api/scratch/prepare" && method === "POST") {
-            try {
-                const b = await request.json();
-                const phone = String(b.phone || "").replace(/\D/g, "");
-                if (phone.length < 8)
-                    return json({ error: "رقم الهاتف غير صالح" }, 400);
-                const used = await env.DB.prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
-                if (used)
-                    return json({ claimed: true });
-                const items = Array.isArray(b.items) ? b.items : [];
-                if (!items.length)
-                    return json({ error: "السلة فارغة" }, 400);
-                const ids = items.map((x) => Number(x.productId)).filter(Boolean);
-                const rows = await env.DB.prepare("SELECT id,name,price,wholesale_price,cost_price,stock,max_qty FROM products WHERE active=1 AND id IN (" + ids.map(() => "?").join(",") + ")").bind(...ids).all();
-                const by = new Map(rows.results.map((x) => [Number(x.id), x]));
-                let profit = 0;
-                for (const it of items) {
-                    const pr = by.get(Number(it.productId));
-                    if (!pr)
-                        continue;
-                    const q = Math.max(1, Math.min(Number(it.qty) || 1, Number(pr.max_qty) || 99));
-                    profit += (Number(pr.price) - (Number(pr.cost_price) || Number(pr.wholesale_price) || 0)) * q;
+            if (p === "/api/admin/settings" && method === "PUT") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const body = await request.json();
+                const row = await getDB(env).prepare("SELECT data FROM settings WHERE id=1").first();
+                let current = {};
+                if (row?.data) {
+                    try { current = JSON.parse(row.data || "{}"); } catch (_) { current = {}; }
                 }
-                const percent = Math.max(0, Math.min(100, Number(b.percent) || 25));
-                const value = Math.floor(Math.max(0, profit * percent / 100));
-                const gift = rows.results.filter((x) => Number(x.stock) > 0 && Number(x.price) <= value).sort((a, b) => Number(b.price) - Number(a.price))[0] || null;
-                return json({ ok: true, profit, percent, value, eligibleProduct: gift ? { id: gift.id, name: gift.name, price: Number(gift.price) } : null });
+                const merged = { ...current, ...(body && typeof body === "object" ? body : {}) };
+                await getDB(env).prepare(`
+          INSERT INTO settings(id,data) VALUES(1,?)
+          ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=CURRENT_TIMESTAMP
+        `).bind(JSON.stringify(merged)).run();
+                return json({ ok: true, settings: merged });
             }
-            catch (e) {
-                return json({ error: String(e?.message || e) }, 500);
-            }
-        }
-        if (p === "/api/scratch/claim" && method === "POST") {
-            try {
-                const b = await request.json();
-                const phone = String(b.phone || "").replace(/\D/g, "");
-                if (phone.length < 8)
-                    return json({ error: "رقم الهاتف غير صالح" }, 400);
-                const used = await env.DB.prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
-                if (used)
-                    return json({ claimed: true });
-                await env.DB.prepare("INSERT INTO scratch_claims(phone,prize,value) VALUES(?,?,?)").bind(phone, String(b.prize || "").slice(0, 200), Math.max(0, Number(b.value) || 0)).run();
-                return json({ ok: true });
-            }
-            catch (e) {
-                return json({ error: String(e?.message || e) }, 500);
-            }
-        }
-        if (p === "/api/flash-offers" && method === "GET") {
-            const rows = await env.DB.prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order FROM flash_offers WHERE active=1 ORDER BY sort_order,id").all();
-            return json({ offers: rows.results });
-        }
-        if (p === "/api/admin/flash-offers" && method === "GET") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const rows = await env.DB.prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order,active FROM flash_offers ORDER BY sort_order,id").all();
-            return json({ offers: rows.results });
-        }
-        if (p.startsWith("/api/admin/flash-offers/") && (method === "PUT" || method === "DELETE")) {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const id = Number(p.split("/").pop());
-            if (!id)
-                return json({ error: "Invalid offer id" }, 400);
-            if (method === "DELETE") {
-                await env.DB.prepare("UPDATE flash_offers SET active=0 WHERE id=?").bind(id).run();
-                return json({ ok: true });
-            }
-            const b = await request.json();
-            await env.DB.prepare("UPDATE flash_offers SET title=?,description=?,image_url=?,price=?,old_price=?,show_seconds=?,gap_seconds=?,sort_order=?,active=? WHERE id=?").bind(String(b.title || "عرض Green Moon"), String(b.description || ""), String(b.imageUrl || ""), Math.max(0, Number(b.price) || 0), Math.max(0, Number(b.oldPrice) || 0), Math.max(1, Number(b.showSeconds) || 30), Math.max(1, Number(b.gapSeconds) || 60), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
-            return json({ ok: true });
-        }
-        if (p === "/api/admin/flash-offers" && method === "POST") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            if (!String(b.title || "").trim())
-                return json({ error: "عنوان العرض مطلوب" }, 400);
-            await env.DB.prepare("INSERT INTO flash_offers(title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order,active) VALUES(?,?,?,?,?,?,?,?,?,1)").bind(String(b.title).trim(), String(b.description || ""), String(b.imageUrl || ""), Math.max(0, Number(b.price) || 0), Math.max(0, Number(b.oldPrice) || 0), Math.max(0, Number(b.stock) || 0), Math.max(1, Number(b.showSeconds) || 30), Math.max(1, Number(b.gapSeconds) || 60), Number(b.sortOrder) || 0).run();
-            return json({ ok: true });
-        }
-        if (p === "/api/scratch/prepare" && method === "POST") {
-            try {
-                const b = await request.json();
-                const phone = String(b.phone || "").replace(/\D/g, "");
-                if (phone.length < 8)
-                    return json({ error: "رقم الهاتف غير صالح" }, 400);
-                const used = await env.DB.prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
-                if (used)
-                    return json({ claimed: true });
-                const items = Array.isArray(b.items) ? b.items : [];
-                if (!items.length)
-                    return json({ error: "السلة فارغة" }, 400);
-                const ids = items.map((x) => Number(x.productId)).filter(Boolean);
-                const rows = await env.DB.prepare("SELECT id,name,price,wholesale_price,cost_price,stock,max_qty FROM products WHERE active=1 AND id IN (" + ids.map(() => "?").join(",") + ")").bind(...ids).all();
-                const by = new Map(rows.results.map((x) => [Number(x.id), x]));
-                let profit = 0;
-                for (const it of items) {
-                    const pr = by.get(Number(it.productId));
-                    if (!pr)
-                        continue;
-                    const q = Math.max(1, Math.min(Number(it.qty) || 1, Number(pr.max_qty) || 99));
-                    profit += (Number(pr.price) - (Number(pr.cost_price) || Number(pr.wholesale_price) || 0)) * q;
+            if (p.startsWith("/api/admin/products/") && (method === "PUT" || method === "DELETE")) {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const id = Number(p.split("/").pop());
+                if (!id)
+                    return json({ error: "Invalid product id" }, 400);
+                if (method === "DELETE") {
+                    await getDB(env).prepare("UPDATE products SET active=0,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(id).run();
+                    return json({ ok: true });
                 }
-                const percent = Math.max(0, Math.min(100, Number(b.percent) || 25));
-                const value = Math.floor(Math.max(0, profit * percent / 100));
-                const gift = rows.results.filter((x) => Number(x.stock) > 0 && Number(x.price) <= value).sort((a, b) => Number(b.price) - Number(a.price))[0] || null;
-                return json({ ok: true, profit, percent, value, eligibleProduct: gift ? { id: gift.id, name: gift.name, price: Number(gift.price) } : null });
-            }
-            catch (e) {
-                return json({ error: String(e?.message || e) }, 500);
-            }
-        }
-        if (p === "/api/scratch/claim" && method === "POST") {
-            try {
                 const b = await request.json();
-                const phone = String(b.phone || "").replace(/\D/g, "");
-                if (phone.length < 8)
-                    return json({ error: "رقم الهاتف غير صالح" }, 400);
-                const used = await env.DB.prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
-                if (used)
-                    return json({ claimed: true });
-                await env.DB.prepare("INSERT INTO scratch_claims(phone,prize,value) VALUES(?,?,?)").bind(phone, String(b.prize || "").slice(0, 200), Math.max(0, Number(b.value) || 0)).run();
+                await getDB(env).prepare(`UPDATE products SET name=?,description=?,image_url=?,price=?,old_price=?,wholesale_price=?,cost_price=?,stock=?,max_qty=?,delivery=?,care_json=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+                    .bind(b.name, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {}), id).run();
                 return json({ ok: true });
             }
-            catch (e) {
-                return json({ error: String(e?.message || e) }, 500);
+            // Category management for the standalone Green Moon admin panel.
+            if (p === "/api/admin/categories" && method === "GET") {
+                if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+                const r = await getDB(env).prepare("SELECT id,name,slug,icon,image_url,sort_order,active FROM categories ORDER BY sort_order,id").all();
+                return json({ categories: r.results || [] });
             }
+            if (p === "/api/admin/categories" && method === "POST") {
+                if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                const name = String(b.name || "").trim();
+                if (!name) return json({ error: "اسم الفئة مطلوب" }, 400);
+                const slug = slugify(b.slug || name);
+                const r = await getDB(env).prepare("INSERT INTO categories(name,slug,icon,image_url,sort_order,active) VALUES(?,?,?,?,?,1)")
+                    .bind(name, slug, String(b.icon || "🌿"), String(b.imageUrl || ""), Number(b.sortOrder) || 0).run();
+                return json({ ok: true, id: r.meta.last_row_id }, 201);
+            }
+            if (p.startsWith("/api/admin/categories/") && (method === "PUT" || method === "DELETE")) {
+                if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+                const id = Number(p.split("/").pop());
+                if (!id) return json({ error: "Invalid category id" }, 400);
+                if (method === "DELETE") {
+                    await getDB(env).prepare("UPDATE categories SET active=0 WHERE id=?").bind(id).run();
+                    return json({ ok: true });
+                }
+                const b = await request.json();
+                const name = String(b.name || "").trim();
+                if (!name) return json({ error: "اسم الفئة مطلوب" }, 400);
+                await getDB(env).prepare("UPDATE categories SET name=?,slug=?,icon=?,image_url=?,sort_order=?,active=? WHERE id=?")
+                    .bind(name, slugify(b.slug || name), String(b.icon || "🌿"), String(b.imageUrl || ""), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
+                return json({ ok: true });
+            }
+            if (p === "/api/admin/orders" && method === "GET") {
+                if (!adminOK(request, env)) return json({ error: "Unauthorized" }, 401);
+                const r = await getDB(env).prepare("SELECT id,order_number,customer_name,phone,whatsapp,governorate,area,building,floor,apartment,notes,subtotal,delivery,discount,adjustment,total,status,created_at FROM orders ORDER BY id DESC LIMIT 200").all();
+                return json({ orders: r.results || [] });
+            }
+            if (p === "/api/admin/products" && method === "POST") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                const slug = slugify(b.slug || b.name);
+                await getDB(env).prepare(`
+          INSERT INTO products(category_id,name,slug,description,image_url,price,old_price,wholesale_price,cost_price,stock,max_qty,delivery,care_json)
+          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
+        `).bind(b.categoryId || null, b.name, slug, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.wholesalePrice) || 0, Number(b.costPrice) || 0, Number(b.stock) || 0, Number(b.maxQty) || 99, Math.max(0, Number(b.delivery) || 0), JSON.stringify(b.care || {})).run();
+                return json({ ok: true });
+            }
+            if (p === "/api/admin/flash-offers" && method === "POST") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                await getDB(env).prepare(`
+          INSERT INTO flash_offers(title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order)
+          VALUES(?,?,?,?,?,?,?,?,?)
+        `).bind(b.title, b.description || "", b.imageUrl || "", Number(b.price) || 0, Number(b.oldPrice) || 0, Number(b.stock) || 0, Number(b.showSeconds) || 15, Number(b.gapSeconds) || 60, Number(b.sortOrder) || 0).run();
+                return json({ ok: true });
+            }
+            if (p === "/api/flash-offers" && method === "GET") {
+                const rows = await getDB(env).prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order FROM flash_offers WHERE active=1 ORDER BY sort_order,id").all();
+                return json({ offers: rows.results });
+            }
+            if (p === "/api/admin/flash-offers" && method === "GET") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const rows = await getDB(env).prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order,active FROM flash_offers ORDER BY sort_order,id").all();
+                return json({ offers: rows.results });
+            }
+            if (p.startsWith("/api/admin/flash-offers/") && (method === "PUT" || method === "DELETE")) {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const id = Number(p.split("/").pop());
+                if (!id)
+                    return json({ error: "Invalid offer id" }, 400);
+                if (method === "DELETE") {
+                    await getDB(env).prepare("UPDATE flash_offers SET active=0 WHERE id=?").bind(id).run();
+                    return json({ ok: true });
+                }
+                const b = await request.json();
+                await getDB(env).prepare("UPDATE flash_offers SET title=?,description=?,image_url=?,price=?,old_price=?,show_seconds=?,gap_seconds=?,sort_order=?,active=? WHERE id=?").bind(String(b.title || "عرض Green Moon"), String(b.description || ""), String(b.imageUrl || ""), Math.max(0, Number(b.price) || 0), Math.max(0, Number(b.oldPrice) || 0), Math.max(1, Number(b.showSeconds) || 30), Math.max(1, Number(b.gapSeconds) || 60), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
+                return json({ ok: true });
+            }
+            if (p === "/api/admin/flash-offers" && method === "POST") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                if (!String(b.title || "").trim())
+                    return json({ error: "عنوان العرض مطلوب" }, 400);
+                await getDB(env).prepare("INSERT INTO flash_offers(title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order,active) VALUES(?,?,?,?,?,?,?,?,?,1)").bind(String(b.title).trim(), String(b.description || ""), String(b.imageUrl || ""), Math.max(0, Number(b.price) || 0), Math.max(0, Number(b.oldPrice) || 0), Math.max(0, Number(b.stock) || 0), Math.max(1, Number(b.showSeconds) || 30), Math.max(1, Number(b.gapSeconds) || 60), Number(b.sortOrder) || 0).run();
+                return json({ ok: true });
+            }
+            if (p === "/api/scratch/prepare" && method === "POST") {
+                try {
+                    const b = await request.json();
+                    const phone = String(b.phone || "").replace(/\D/g, "");
+                    if (phone.length < 8)
+                        return json({ error: "رقم الهاتف غير صالح" }, 400);
+                    const used = await getDB(env).prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
+                    if (used)
+                        return json({ claimed: true });
+                    const items = Array.isArray(b.items) ? b.items : [];
+                    if (!items.length)
+                        return json({ error: "السلة فارغة" }, 400);
+                    const ids = items.map((x) => Number(x.productId)).filter(Boolean);
+                    const rows = await getDB(env).prepare("SELECT id,name,price,wholesale_price,cost_price,stock,max_qty FROM products WHERE active=1 AND id IN (" + ids.map(() => "?").join(",") + ")").bind(...ids).all();
+                    const by = new Map(rows.results.map((x) => [Number(x.id), x]));
+                    let profit = 0;
+                    for (const it of items) {
+                        const pr = by.get(Number(it.productId));
+                        if (!pr)
+                            continue;
+                        const q = Math.max(1, Math.min(Number(it.qty) || 1, Number(pr.max_qty) || 99));
+                        profit += (Number(pr.price) - (Number(pr.cost_price) || Number(pr.wholesale_price) || 0)) * q;
+                    }
+                    const percent = Math.max(0, Math.min(100, Number(b.percent) || 25));
+                    const value = Math.floor(Math.max(0, profit * percent / 100));
+                    const gift = rows.results.filter((x) => Number(x.stock) > 0 && Number(x.price) <= value).sort((a, b) => Number(b.price) - Number(a.price))[0] || null;
+                    return json({ ok: true, profit, percent, value, eligibleProduct: gift ? { id: gift.id, name: gift.name, price: Number(gift.price) } : null });
+                }
+                catch (e) {
+                    return json({ error: String(e?.message || e) }, 500);
+                }
+            }
+            if (p === "/api/scratch/claim" && method === "POST") {
+                try {
+                    const b = await request.json();
+                    const phone = String(b.phone || "").replace(/\D/g, "");
+                    if (phone.length < 8)
+                        return json({ error: "رقم الهاتف غير صالح" }, 400);
+                    const used = await getDB(env).prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
+                    if (used)
+                        return json({ claimed: true });
+                    await getDB(env).prepare("INSERT INTO scratch_claims(phone,prize,value) VALUES(?,?,?)").bind(phone, String(b.prize || "").slice(0, 200), Math.max(0, Number(b.value) || 0)).run();
+                    return json({ ok: true });
+                }
+                catch (e) {
+                    return json({ error: String(e?.message || e) }, 500);
+                }
+            }
+            if (p === "/api/flash-offers" && method === "GET") {
+                const rows = await getDB(env).prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order FROM flash_offers WHERE active=1 ORDER BY sort_order,id").all();
+                return json({ offers: rows.results });
+            }
+            if (p === "/api/admin/flash-offers" && method === "GET") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const rows = await getDB(env).prepare("SELECT id,title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order,active FROM flash_offers ORDER BY sort_order,id").all();
+                return json({ offers: rows.results });
+            }
+            if (p.startsWith("/api/admin/flash-offers/") && (method === "PUT" || method === "DELETE")) {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const id = Number(p.split("/").pop());
+                if (!id)
+                    return json({ error: "Invalid offer id" }, 400);
+                if (method === "DELETE") {
+                    await getDB(env).prepare("UPDATE flash_offers SET active=0 WHERE id=?").bind(id).run();
+                    return json({ ok: true });
+                }
+                const b = await request.json();
+                await getDB(env).prepare("UPDATE flash_offers SET title=?,description=?,image_url=?,price=?,old_price=?,show_seconds=?,gap_seconds=?,sort_order=?,active=? WHERE id=?").bind(String(b.title || "عرض Green Moon"), String(b.description || ""), String(b.imageUrl || ""), Math.max(0, Number(b.price) || 0), Math.max(0, Number(b.oldPrice) || 0), Math.max(1, Number(b.showSeconds) || 30), Math.max(1, Number(b.gapSeconds) || 60), Number(b.sortOrder) || 0, b.active === false ? 0 : 1, id).run();
+                return json({ ok: true });
+            }
+            if (p === "/api/admin/flash-offers" && method === "POST") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                if (!String(b.title || "").trim())
+                    return json({ error: "عنوان العرض مطلوب" }, 400);
+                await getDB(env).prepare("INSERT INTO flash_offers(title,description,image_url,price,old_price,stock,show_seconds,gap_seconds,sort_order,active) VALUES(?,?,?,?,?,?,?,?,?,1)").bind(String(b.title).trim(), String(b.description || ""), String(b.imageUrl || ""), Math.max(0, Number(b.price) || 0), Math.max(0, Number(b.oldPrice) || 0), Math.max(0, Number(b.stock) || 0), Math.max(1, Number(b.showSeconds) || 30), Math.max(1, Number(b.gapSeconds) || 60), Number(b.sortOrder) || 0).run();
+                return json({ ok: true });
+            }
+            if (p === "/api/scratch/prepare" && method === "POST") {
+                try {
+                    const b = await request.json();
+                    const phone = String(b.phone || "").replace(/\D/g, "");
+                    if (phone.length < 8)
+                        return json({ error: "رقم الهاتف غير صالح" }, 400);
+                    const used = await getDB(env).prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
+                    if (used)
+                        return json({ claimed: true });
+                    const items = Array.isArray(b.items) ? b.items : [];
+                    if (!items.length)
+                        return json({ error: "السلة فارغة" }, 400);
+                    const ids = items.map((x) => Number(x.productId)).filter(Boolean);
+                    const rows = await getDB(env).prepare("SELECT id,name,price,wholesale_price,cost_price,stock,max_qty FROM products WHERE active=1 AND id IN (" + ids.map(() => "?").join(",") + ")").bind(...ids).all();
+                    const by = new Map(rows.results.map((x) => [Number(x.id), x]));
+                    let profit = 0;
+                    for (const it of items) {
+                        const pr = by.get(Number(it.productId));
+                        if (!pr)
+                            continue;
+                        const q = Math.max(1, Math.min(Number(it.qty) || 1, Number(pr.max_qty) || 99));
+                        profit += (Number(pr.price) - (Number(pr.cost_price) || Number(pr.wholesale_price) || 0)) * q;
+                    }
+                    const percent = Math.max(0, Math.min(100, Number(b.percent) || 25));
+                    const value = Math.floor(Math.max(0, profit * percent / 100));
+                    const gift = rows.results.filter((x) => Number(x.stock) > 0 && Number(x.price) <= value).sort((a, b) => Number(b.price) - Number(a.price))[0] || null;
+                    return json({ ok: true, profit, percent, value, eligibleProduct: gift ? { id: gift.id, name: gift.name, price: Number(gift.price) } : null });
+                }
+                catch (e) {
+                    return json({ error: String(e?.message || e) }, 500);
+                }
+            }
+            if (p === "/api/scratch/claim" && method === "POST") {
+                try {
+                    const b = await request.json();
+                    const phone = String(b.phone || "").replace(/\D/g, "");
+                    if (phone.length < 8)
+                        return json({ error: "رقم الهاتف غير صالح" }, 400);
+                    const used = await getDB(env).prepare("SELECT id FROM scratch_claims WHERE phone=?").bind(phone).first();
+                    if (used)
+                        return json({ claimed: true });
+                    await getDB(env).prepare("INSERT INTO scratch_claims(phone,prize,value) VALUES(?,?,?)").bind(phone, String(b.prize || "").slice(0, 200), Math.max(0, Number(b.value) || 0)).run();
+                    return json({ ok: true });
+                }
+                catch (e) {
+                    return json({ error: String(e?.message || e) }, 500);
+                }
+            }
+            if (p === "/api/admin/reviews" && method === "POST") {
+                if (!adminOK(request, env))
+                    return json({ error: "Unauthorized" }, 401);
+                const b = await request.json();
+                await getDB(env).prepare("INSERT INTO reviews(name,rating,review,active) VALUES(?,?,?,?)")
+                    .bind(b.name, Math.min(5, Math.max(1, Number(b.stars) || 5)), b.text || "", Number(b.verified) || 0).run();
+                return json({ ok: true });
+            }
+            if (p.startsWith("/api/"))
+                return json({ error: "Not found" }, 404);
+            if (p === "/green-moon-logo.webp")
+                return new Response(Uint8Array.from(atob(LOGO_B64), c => c.charCodeAt(0)), { headers: { "content-type": "image/webp", "cache-control": "public,max-age=86400" } });
+            if (p === "/green-moon-luxury-cover.webp")
+                return new Response(Uint8Array.from(atob(COVER_B64), c => c.charCodeAt(0)), { headers: { "content-type": "image/webp", "cache-control": "public,max-age=86400" } });
+            return new Response("Not found", { status: 404 });
+        } catch (e) {
+            return json({ error: String(e?.message || e), type: "worker_error" }, 500);
         }
-        if (p === "/api/admin/reviews" && method === "POST") {
-            if (!adminOK(request, env))
-                return json({ error: "Unauthorized" }, 401);
-            const b = await request.json();
-            await env.DB.prepare("INSERT INTO reviews(name,rating,review,active) VALUES(?,?,?,?)")
-                .bind(b.name, Math.min(5, Math.max(1, Number(b.stars) || 5)), b.text || "", Number(b.verified) || 0).run();
-            return json({ ok: true });
-        }
-        if (p.startsWith("/api/"))
-            return json({ error: "Not found" }, 404);
-        if (p === "/green-moon-logo.webp")
-            return new Response(Uint8Array.from(atob(LOGO_B64), c => c.charCodeAt(0)), { headers: { "content-type": "image/webp", "cache-control": "public,max-age=86400" } });
-        if (p === "/green-moon-luxury-cover.webp")
-            return new Response(Uint8Array.from(atob(COVER_B64), c => c.charCodeAt(0)), { headers: { "content-type": "image/webp", "cache-control": "public,max-age=86400" } });
-        return new Response("Not found", { status: 404 });
     }
 };
