@@ -13,6 +13,23 @@ export default {
     };
     if (request.method === "OPTIONS") return new Response(null, {status:204, headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Methods":"GET,HEAD,OPTIONS","Access-Control-Allow-Headers":"*"}});
     // Same-origin API bridge: keeps the customer/admin UI on one origin and avoids browser CORS/network failures.
+    // A local health endpoint also proves that the public catalog Worker is the version serving the request.
+    if (path === '/api/health') {
+      try {
+        const r = await fetch('https://green-moon-products.greenmoon-eg.workers.dev/api/health');
+        const text = await r.text();
+        let backend = null;
+        try { backend = JSON.parse(text); } catch (_) { backend = { raw: text }; }
+        return new Response(JSON.stringify({ok: r.ok, catalog: true, backend}), {
+          status: r.ok ? 200 : 502,
+          headers: {'content-type':'application/json; charset=utf-8','cache-control':'no-store','access-control-allow-origin':'*'}
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ok:false,catalog:true,backend:false,error:String(e?.message||e)}), {
+          status:502, headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','access-control-allow-origin':'*'}
+        });
+      }
+    }
     if (path === '/api' || path.startsWith('/api/')) {
       const backend = 'https://green-moon-products.greenmoon-eg.workers.dev' + path + url.search;
       try {
