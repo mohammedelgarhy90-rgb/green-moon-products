@@ -16,7 +16,8 @@ export default {
     // A local health endpoint also proves that the public catalog Worker is the version serving the request.
     if (path === '/api/health') {
       try {
-        const r = await fetch('https://green-moon-products.greenmoon-eg.workers.dev/api/health');
+        const target = new Request('https://green-moon-products.greenmoon-eg.workers.dev/api/health', request);
+        const r = await env.BACKEND.fetch(target);
         const text = await r.text();
         let backend = null;
         try { backend = JSON.parse(text); } catch (_) { backend = { raw: text }; }
@@ -31,14 +32,17 @@ export default {
       }
     }
     if (path === '/api' || path.startsWith('/api/')) {
+      if (request.method === 'OPTIONS') {
+        return new Response(null, {status:204, headers:{'access-control-allow-origin':'*','access-control-allow-headers':'Content-Type, Authorization, x-admin-token','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS'}});
+      }
       const backend = 'https://green-moon-products.greenmoon-eg.workers.dev' + path + url.search;
       try {
-        const upstream = await fetch(new Request(backend, request));
+        const upstream = await env.BACKEND.fetch(new Request(backend, request));
         const h = new Headers(upstream.headers);
         h.set('Cache-Control','no-store');
         h.set('Access-Control-Allow-Origin','*');
         h.set('Access-Control-Allow-Methods','GET,POST,PUT,DELETE,OPTIONS');
-        h.set('Access-Control-Allow-Headers','Content-Type,x-admin-token');
+        h.set('Access-Control-Allow-Headers','Content-Type, Authorization, x-admin-token');
         return new Response(upstream.body,{status:upstream.status,statusText:upstream.statusText,headers:h});
       } catch (e) {
         return new Response(JSON.stringify({error:'تعذر الاتصال بخدمة المتجر',detail:String(e?.message||e)}),{status:502,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','access-control-allow-origin':'*'}});
